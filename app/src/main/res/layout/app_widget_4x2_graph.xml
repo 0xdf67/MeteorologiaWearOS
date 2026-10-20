@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@null"
+    android:theme="@style/AppWidgetTheme.AppWidgetContainer"
+    tools:ignore="HardcodedText,UseAppTint"
+    tools:layout_height="192dp"
+    tools:layout_width="384dp"
+    tools:viewBindingIgnore="true">
+
+    <include layout="@layout/app_widget_background" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            tools:ignore="UseCompoundDrawables">
+
+            <TextView
+                android:id="@+id/location_name"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:shadowColor="#000000"
+                android:textColor="?colorOnSurface"
+                android:textFontWeight="500"
+                android:textSize="14sp"
+                tools:ignore="UnusedAttribute"
+                tools:text="New York, NY" />
+
+            <ImageView
+                android:id="@+id/refresh_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="4dp"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/action_refresh"
+                android:elevation="4dp"
+                android:maxWidth="16dp"
+                android:maxHeight="16dp"
+                android:scaleType="fitCenter"
+                android:tint="?colorOnSurface"
+                tools:src="@drawable/ic_refresh" />
+
+            <ImageView
+                android:id="@+id/settings_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/action_settings"
+                android:elevation="4dp"
+                android:maxWidth="16dp"
+                android:maxHeight="16dp"
+                android:scaleType="fitCenter"
+                android:tint="?colorOnSurface"
+                tools:src="@drawable/ic_outline_settings_24" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/graph_view"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:adjustViewBounds="true"
+            android:contentDescription="Graph"
+            android:scaleType="centerInside"
+            tools:src="@drawable/ic_settings_black_24dp" />
+
+        <TextView
+            android:id="@+id/no_data_view"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/label_nodata"
+            android:textAllCaps="true"
+            android:textAppearance="?textAppearanceTitleLarge"
+            android:textColor="?colorOnSurface"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/graph_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingStart="4dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="4dp"
+            android:textAppearance="?textAppearanceBodyMediumEmphasized"
+            android:shadowColor="#000000"
+            android:textColor="?colorOnSurface"
+            tools:text="Precipitation" />
+
+    </LinearLayout>
+
+</FrameLayout>

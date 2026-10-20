@@ -1,0 +1,62 @@
+package com.thewizrd.weather_api.weatherdata
+
+import com.thewizrd.shared_resources.BuildConfig
+import com.thewizrd.shared_resources.weatherdata.WeatherAPI
+import com.thewizrd.shared_resources.weatherdata.WeatherProvider
+import com.thewizrd.weather_api.accuweather.weather.AccuWeatherProvider
+import com.thewizrd.weather_api.brightsky.BrightSkyProvider
+import com.thewizrd.weather_api.eccc.ECCCWeatherProvider
+import com.thewizrd.weather_api.google.weather.GoogleWeatherProvider
+import com.thewizrd.weather_api.here.weather.HEREWeatherProvider
+import com.thewizrd.weather_api.ipma.IpmaWeatherProvider
+import com.thewizrd.weather_api.meteofrance.weather.MeteoFranceProvider
+import com.thewizrd.weather_api.meteomatics.weather.MeteomaticsWeatherProvider
+import com.thewizrd.weather_api.metno.MetnoWeatherProvider
+import com.thewizrd.weather_api.nws.NWSWeatherProvider
+import com.thewizrd.weather_api.openmeteo.OpenMeteoWeatherProvider
+import com.thewizrd.weather_api.openweather.location.OpenWeatherMapLocationProvider
+import com.thewizrd.weather_api.openweather.weather.OpenWeatherMapProvider
+import com.thewizrd.weather_api.tomorrow.TomorrowIOWeatherProvider
+import com.thewizrd.weather_api.weatherapi.weather.WeatherApiProvider
+import com.thewizrd.weather_api.weatherbit.WeatherBitIOProvider
+import com.thewizrd.weather_api.weatherkit.WeatherKitProvider
+import com.thewizrd.weather_api.weatherunlocked.WeatherUnlockedProvider
+
+class WeatherProviderFactoryImpl : WeatherProviderFactory {
+    override fun getWeatherProvider(provider: String?): WeatherProvider {
+        return when (provider) {
+            WeatherAPI.HERE -> HEREWeatherProvider()
+            WeatherAPI.OPENWEATHERMAP -> {
+                when {
+                    BuildConfig.IS_NONGMS -> OpenWeatherMapProvider(OpenWeatherMapLocationProvider())
+                    else -> OpenWeatherMapProvider()
+                }
+            }
+            WeatherAPI.METNO -> MetnoWeatherProvider()
+            WeatherAPI.NWS -> NWSWeatherProvider()
+            WeatherAPI.WEATHERAPI -> WeatherApiProvider()
+            WeatherAPI.WEATHERUNLOCKED -> WeatherUnlockedProvider()
+            WeatherAPI.METEOFRANCE -> MeteoFranceProvider()
+            WeatherAPI.TOMORROWIO -> TomorrowIOWeatherProvider()
+            WeatherAPI.ACCUWEATHER -> AccuWeatherProvider()
+            WeatherAPI.WEATHERBITIO -> WeatherBitIOProvider()
+            WeatherAPI.METEOMATICS -> MeteomaticsWeatherProvider()
+            WeatherAPI.APPLE -> WeatherKitProvider()
+            WeatherAPI.DWD -> BrightSkyProvider()
+            WeatherAPI.ECCC -> ECCCWeatherProvider()
+            WeatherAPI.GOOGLE -> GoogleWeatherProvider()
+            WeatherAPI.OPENMETEO -> OpenMeteoWeatherProvider()
+            WeatherAPI.IPMA -> IpmaWeatherProvider()
+            else -> {
+                if (!BuildConfig.DEBUG) {
+                    if (!BuildConfig.IS_NONGMS)
+                        OpenMeteoWeatherProvider()
+                    else
+                        MetnoWeatherProvider()
+                } else {
+                    throw IllegalArgumentException("Weather provider not supported ($provider)")
+                }
+            }
+        }
+    }
+}

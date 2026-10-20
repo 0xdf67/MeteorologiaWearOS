@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+    <group
+        android:translateX="0.160000"
+        android:translateY="0.000000"
+        android:pivotX="16"
+        android:pivotY="16"
+        android:scaleX="1.5"
+        android:scaleY="1.5">
+        <path
+            android:pathData="M15.84 8.48c4.16 0 7.52 3.36 7.52 7.52s-3.36 7.52-7.52 7.52c-4.128 0-7.52-3.392-7.52-7.52s3.36-7.52 7.52-7.52"
+            android:fillColor="@color/wicon_color" />
+    </group>
+</vector>

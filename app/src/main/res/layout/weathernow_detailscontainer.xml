@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="android.view.View" />
+
+        <import type="com.thewizrd.simpleweather.preferences.FeatureSettings" />
+
+        <variable
+            name="viewModel"
+            type="com.thewizrd.simpleweather.viewmodels.WeatherNowViewModel" />
+
+    </data>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="6dp"
+        android:layout_marginVertical="2dp"
+        app:contentPaddingBottom="12dp"
+        style="@style/WeatherNow.CardView">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/details_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:paddingHorizontal="@dimen/section_label_horizontal_padding"
+                android:paddingVertical="@dimen/section_label_vertical_padding"
+                android:text="@string/label_details"
+                android:textAppearance="@style/TextAppearance.WeatherNow.SectionLabel"
+                app:showIfNotEmpty="@{viewModel.weather.weatherDetailsMap}"
+                app:showIfTrue="@{FeatureSettings.detailsEnabled}" />
+
+            <com.thewizrd.simpleweather.controls.ExpandingGridView
+                android:id="@+id/details_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:columnWidth="@dimen/detail_grid_column_width"
+                android:gravity="center"
+                android:numColumns="auto_fit"
+                android:paddingStart="16dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="8dp"
+                android:stretchMode="columnWidth"
+                android:horizontalSpacing="4dp"
+                android:verticalSpacing="4dp"
+                android:scrollbars="none"
+                android:scrollIndicators="none"
+                app:showIfTrue="@{FeatureSettings.detailsEnabled}"
+                app:showIfNotEmpty="@{viewModel.weather.weatherDetailsMap}"
+                app:details_data="@{viewModel.weather.weatherDetailsMap}"
+                tools:layout_height="300dp"
+                tools:visibility="visible" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</layout>

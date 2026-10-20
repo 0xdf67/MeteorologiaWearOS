@@ -1,0 +1,111 @@
+package com.thewizrd.shared_resources.remoteconfig
+
+import android.location.Geocoder
+import com.thewizrd.shared_resources.locationdata.LocationData
+import com.thewizrd.shared_resources.locationdata.LocationQuery
+import com.thewizrd.shared_resources.utils.LocationUtils
+import com.thewizrd.shared_resources.weatherdata.WeatherAPI
+import com.thewizrd.shared_resources.weatherdata.WeatherAPI.WeatherProviders
+
+class RemoteConfigServiceImpl : RemoteConfigService {
+    override fun getLocationProvider(weatherAPI: String): String? {
+        return if (Geocoder.isPresent()) {
+            WeatherAPI.ANDROID
+        } else {
+            WeatherAPI.OPENWEATHERMAP
+        }
+    }
+
+    override fun isProviderEnabled(weatherAPI: String): Boolean {
+        return true
+    }
+
+    override fun updateWeatherProvider(): Boolean {
+        return false
+    }
+
+    @WeatherProviders
+    override fun getDefaultWeatherProvider(): String {
+        return WeatherAPI.METNO
+    }
+
+    @WeatherProviders
+    override fun getDefaultWeatherProvider(location: LocationQuery): String {
+        return when {
+            LocationUtils.isNWSSupported(location) && isProviderEnabled(WeatherAPI.NWS) -> {
+                WeatherAPI.NWS
+            }
+
+            LocationUtils.isPortugal(location) && isProviderEnabled(WeatherAPI.IPMA) -> {
+                WeatherAPI.IPMA
+            }
+
+            LocationUtils.isFrance(location) && isProviderEnabled(WeatherAPI.METEOFRANCE) -> {
+                WeatherAPI.METEOFRANCE
+            }
+
+            LocationUtils.isGermany(location) && isProviderEnabled(WeatherAPI.DWD) -> {
+                WeatherAPI.DWD
+            }
+
+            LocationUtils.isCanada(location) && isProviderEnabled(WeatherAPI.ECCC) -> {
+                WeatherAPI.ECCC
+            }
+
+            LocationUtils.isOpenMeteoSupported(location) && isProviderEnabled(WeatherAPI.OPENMETEO) -> {
+                WeatherAPI.OPENMETEO
+            }
+
+            else -> {
+                getDefaultWeatherProvider()
+            }
+        }
+    }
+
+    @WeatherProviders
+    override fun getDefaultWeatherProvider(location: LocationData): String {
+        return when {
+            LocationUtils.isNWSSupported(location) && isProviderEnabled(WeatherAPI.NWS) -> {
+                WeatherAPI.NWS
+            }
+
+            LocationUtils.isPortugal(location) && isProviderEnabled(WeatherAPI.IPMA) -> {
+                WeatherAPI.IPMA
+            }
+
+            LocationUtils.isFrance(location) && isProviderEnabled(WeatherAPI.METEOFRANCE) -> {
+                WeatherAPI.METEOFRANCE
+            }
+
+            LocationUtils.isGermany(location) && isProviderEnabled(WeatherAPI.DWD) -> {
+                WeatherAPI.DWD
+            }
+
+            LocationUtils.isCanada(location) && isProviderEnabled(WeatherAPI.ECCC) -> {
+                WeatherAPI.ECCC
+            }
+
+            LocationUtils.isOpenMeteoSupported(location) && isProviderEnabled(WeatherAPI.OPENMETEO) -> {
+                WeatherAPI.OPENMETEO
+            }
+
+            else -> {
+                getDefaultWeatherProvider()
+            }
+        }
+    }
+
+    override fun checkConfig() {
+        // no-op
+    }
+
+    override suspend fun checkConfigAsync(): Boolean {
+        return false
+    }
+
+    override fun getBoolean(key: String): Boolean = false
+
+    override fun getLong(key: String): Long = 0L
+
+    override fun getDouble(key: String): Double = 0.0
+}

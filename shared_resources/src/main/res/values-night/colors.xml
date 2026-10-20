@@ -1,0 +1,18 @@
+<resources>
+    <color name="colorPrimaryBackground">@color/colorPrimaryDark</color>
+    <color name="colorPrimarySurface">@color/colorSurface</color>
+
+    <color name="colorBackground">@color/md_theme_dark_background</color>
+    <color name="colorSurface">@color/md_theme_dark_surface</color>
+    <color name="colorError">@color/md_theme_dark_error</color>
+
+    <color name="colorOnPrimary">@color/md_theme_dark_onPrimary</color>
+    <color name="colorOnSecondary">@color/md_theme_dark_onSecondary</color>
+    <color name="colorOnBackground">@color/md_theme_dark_onBackground</color>
+    <color name="colorOnSurface">@color/md_theme_dark_onSurface</color>
+    <color name="colorOnError">@color/md_theme_dark_onError</color>
+
+    <color name="colorTextPrimary">@color/abc_primary_text_material_dark</color>
+    <color name="colorTextSecondary">@color/abc_secondary_text_material_dark</color>
+    <color name="colorTextShadow">#888888</color>
+</resources>

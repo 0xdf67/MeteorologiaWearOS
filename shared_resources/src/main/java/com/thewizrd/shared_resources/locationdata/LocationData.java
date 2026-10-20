@@ -1,0 +1,308 @@
+package com.thewizrd.shared_resources.locationdata;
+
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
+
+import com.ibm.icu.util.TimeZone;
+import com.squareup.moshi.JsonReader;
+import com.squareup.moshi.JsonWriter;
+import com.thewizrd.shared_resources.ApplicationLibKt;
+import com.thewizrd.shared_resources.DateTimeConstants;
+import com.thewizrd.shared_resources.preferences.SettingsManager;
+import com.thewizrd.shared_resources.utils.CustomJsonObject;
+import com.thewizrd.shared_resources.utils.DateTimeUtils;
+import com.thewizrd.shared_resources.utils.Logger;
+import com.thewizrd.shared_resources.utils.StringUtils;
+import com.thewizrd.shared_resources.utils.ZoneIdCompat;
+import com.thewizrd.shared_resources.weatherdata.WeatherAPI;
+import com.thewizrd.shared_resources.weatherdata.model.LocationType;
+import com.thewizrd.shared_resources.weatherdata.model.Weather;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+
+@Entity(tableName = "locations")
+public class LocationData extends CustomJsonObject {
+    @PrimaryKey
+    @NonNull
+    private String query;
+    @Nullable
+    private String name;
+    private double latitude;
+    private double longitude;
+
+    @Nullable
+    @ColumnInfo(name = "tz_long")
+    private String tzLong;
+    @NonNull
+    private LocationType locationType = LocationType.SEARCH;
+    @Nullable
+    @ColumnInfo(name = "source")
+    private String weatherSource;
+    @Nullable
+    @ColumnInfo(name = "locsource")
+    private String locationSource;
+
+    @NonNull
+    public String getQuery() {
+        return query;
+    }
+
+    public void setQuery(@NonNull String query) {
+        this.query = query;
+    }
+
+    @Nullable
+    public String getName() {
+        return name;
+    }
+
+    public void setName(@Nullable String name) {
+        this.name = name;
+    }
+
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
+    }
+
+    public ZoneOffset getTzOffset() {
+        if (!StringUtils.isNullOrWhitespace(tzLong)) {
+            ZoneId tzId = ZoneIdCompat.of(tzLong);
+            if (tzId != null)
+                return tzId.getRules().getOffset(Instant.now());
+        }
+        return ZoneOffset.UTC;
+    }
+
+    public String getTzShort() {
+        if (!StringUtils.isNullOrWhitespace(tzLong)) {
+            ZoneId zId = ZoneIdCompat.of(tzLong);
+            if (zId != null) {
+                return ZonedDateTime.now(zId).format(
+                        DateTimeUtils.ofPatternForUserLocale(DateTimeConstants.TIMEZONE_NAME)
+                );
+            }
+        }
+        return "UTC";
+    }
+
+    public String getCountryCode() {
+        if (!StringUtils.isNullOrWhitespace(tzLong)) {
+            return TimeZone.getRegion(tzLong);
+        }
+        return "";
+    }
+
+    @Nullable
+    public String getTzLong() {
+        return tzLong;
+    }
+
+    public void setTzLong(@Nullable String tzLong) {
+        this.tzLong = tzLong;
+    }
+
+    @NonNull
+    public LocationType getLocationType() {
+        return locationType;
+    }
+
+    public void setLocationType(@NonNull LocationType locationType) {
+        this.locationType = locationType;
+    }
+
+    @Nullable
+    @WeatherAPI.WeatherProviders
+    public String getWeatherSource() {
+        return weatherSource;
+    }
+
+    public void setWeatherSource(@Nullable @WeatherAPI.WeatherProviders String source) {
+        this.weatherSource = source;
+    }
+
+    @Nullable
+    @WeatherAPI.LocationProviders
+    public String getLocationSource() {
+        return locationSource;
+    }
+
+    public void setLocationSource(@Nullable @WeatherAPI.LocationProviders String locationSource) {
+        this.locationSource = locationSource;
+    }
+
+    public LocationData() {
+        if (SettingsManager.Companion.isLoaded()) {
+            final SettingsManager settingsMgr = ApplicationLibKt.getAppLib().getSettingsManager();
+            weatherSource = settingsMgr.getAPI();
+        }
+    }
+
+    @Ignore
+    public LocationData(@NonNull Weather weather) {
+        query = weather.getQuery();
+        name = weather.getLocation() != null ? weather.getLocation().getName() : null;
+        latitude = weather.getLocation().getLatitude();
+        longitude = weather.getLocation().getLongitude();
+        tzLong = weather.getLocation().getTzLong();
+        weatherSource = weather.getSource();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if ((o == null) || getClass() != o.getClass()) {
+            return false;
+        } else {
+            LocationData locData = (LocationData) o;
+            return this.hashCode() == locData.hashCode();
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        int hashCode = -19042156;
+        long temp;
+        hashCode = hashCode * -1521134295 + (query != null ? query.hashCode() : 0);
+        hashCode = hashCode * -1521134295 + (name != null ? name.hashCode() : 0);
+        temp = Double.doubleToLongBits(latitude);
+        hashCode = hashCode * -1521134295 + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(longitude);
+        hashCode = hashCode * -1521134295 + (int) (temp ^ (temp >>> 32));
+        hashCode = hashCode * -1521134295 + (tzLong != null ? tzLong.hashCode() : 0);
+        hashCode = hashCode * -1521134295 + (locationType != null ? locationType.hashCode() : 0);
+        hashCode = hashCode * -1521134295 + (weatherSource != null ? weatherSource.hashCode() : 0);
+        hashCode = hashCode * -1521134295 + (locationSource != null ? locationSource.hashCode() : 0);
+        return hashCode;
+    }
+
+    @Override
+    public void fromJson(@NonNull JsonReader reader) {
+        try {
+            while (reader.hasNext() && reader.peek() != JsonReader.Token.END_OBJECT) {
+                if (reader.peek() == JsonReader.Token.BEGIN_OBJECT)
+                    reader.beginObject(); // StartObject
+
+                String property = reader.nextName();
+
+                if (reader.peek() == JsonReader.Token.NULL) {
+                    reader.nextNull();
+                    continue;
+                }
+
+                switch (property) {
+                    case "query":
+                        this.query = reader.nextString();
+                        break;
+                    case "name":
+                        this.name = reader.nextString();
+                        break;
+                    case "latitude":
+                        this.latitude = Double.parseDouble(reader.nextString());
+                        break;
+                    case "longitude":
+                        this.longitude = Double.parseDouble(reader.nextString());
+                        break;
+                    case "tz_long":
+                        this.tzLong = reader.nextString();
+                        break;
+                    case "locationType":
+                        this.locationType = LocationType.valueOf(Integer.parseInt(reader.nextString()));
+                        break;
+                    case "source":
+                        this.weatherSource = reader.nextString();
+                        break;
+                    case "locsource":
+                        this.locationSource = reader.nextString();
+                        break;
+                    default:
+                        reader.skipValue();
+                        break;
+                }
+            }
+
+            if (reader.peek() == JsonReader.Token.END_OBJECT)
+                reader.endObject();
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Override
+    public void toJson(@NonNull JsonWriter writer) {
+        try {
+            // {
+            writer.beginObject();
+
+            // "query" : ""
+            writer.name("query");
+            writer.value(query);
+
+            // "name" : ""
+            writer.name("name");
+            writer.value(name);
+
+            // "latitude" : ""
+            writer.name("latitude");
+            writer.value(latitude);
+
+            // "longitude" : ""
+            writer.name("longitude");
+            writer.value(longitude);
+
+            // "tz_long" : ""
+            writer.name("tz_long");
+            writer.value(tzLong);
+
+            // "locationType" : ""
+            writer.name("locationType");
+            writer.value(locationType.getValue());
+
+            // "source" : ""
+            writer.name("source");
+            writer.value(weatherSource);
+
+            // "locsource" : ""
+            writer.name("locsource");
+            writer.value(locationSource);
+
+            // }
+            writer.endObject();
+        } catch (IOException e) {
+            Logger.writeLine(Log.ERROR, e, "LocationData: error writing json string");
+        }
+    }
+
+    public boolean isValid() {
+        return !StringUtils.isNullOrWhitespace(query) &&
+                !StringUtils.isNullOrWhitespace(weatherSource) &&
+                !StringUtils.isNullOrWhitespace(locationSource) &&
+                !(latitude == 0d && longitude == 0d);
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return String.format("%s|%s|%s", this.query, this.name, this.locationType);
+    }
+}

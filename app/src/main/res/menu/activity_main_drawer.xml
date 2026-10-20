@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@id/weatherNowFragment"
+            android:icon="@drawable/ic_full_sun_large"
+            android:title="@string/label_nav_weathernow" />
+        <item
+            android:id="@id/weatherRadarFragment"
+            android:icon="@drawable/ic_radar"
+            android:title="@string/label_radar" />
+        <item
+            android:id="@id/locationsFragment"
+            android:icon="@drawable/ic_star_border"
+            android:title="@string/label_nav_locations" />
+        <item
+            android:id="@id/settingsFragment"
+            android:icon="@drawable/ic_outline_settings_24"
+            android:title="@string/action_settings" />
+    </group>
+
+</menu>

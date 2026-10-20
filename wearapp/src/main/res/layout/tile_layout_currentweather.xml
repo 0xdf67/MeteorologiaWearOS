@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tile"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/tile_horizontal_padding"
+    android:paddingEnd="@dimen/tile_horizontal_padding"
+    tools:viewBindingIgnore="true"
+    tools:theme="@android:style/Theme.DeviceDefault">
+
+    <TextView
+        android:id="@+id/location_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/tile_current_header_minheight"
+        android:gravity="bottom|center_horizontal"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:paddingTop="@dimen/wnow_vertical_padding"
+        android:paddingHorizontal="@dimen/tile_horizontal_padding"
+        tools:text="New York, New York" />
+
+    <include layout="@layout/tile_layout_currentweather_icontemp" />
+
+    <TextView
+        android:id="@+id/condition_weather"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/tile_current_header_minheight"
+        android:fontFamily="sans-serif"
+        android:paddingBottom="@dimen/wnow_vertical_padding"
+        android:paddingHorizontal="@dimen/setup_horizontal_margin"
+        android:gravity="top|center_horizontal"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        tools:text="Partly cloudy with a chance of rain tomorrow" />
+
+</LinearLayout>

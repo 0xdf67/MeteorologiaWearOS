@@ -1,0 +1,13 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:theme="@style/AppWidgetTheme.AppWidgetContainer"
+    tools:layout_height="wrap_content"
+    tools:layout_width="384dp">
+
+    <include layout="@layout/app_widget_forecast_layout_container_themed_preview" />
+
+</LinearLayout>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <Preference
+        android:key="key_aboutcredits"
+        android:title="@string/pref_title_credits" />
+
+    <Preference
+        android:key="key_aboutoslibs"
+        android:title="@string/pref_title_oslibs" />
+
+    <PreferenceCategory android:title="@string/pref_category_support">
+
+        <Preference
+            android:key="key_feedback"
+            android:title="@string/pref_title_feedback"
+            android:summary="@string/pref_summary_feedback"
+            app:icon="@drawable/ic_baseline_feedback_24" />
+
+        <Preference
+            android:key="key_ratereview"
+            app:isPreferenceVisible="false"
+            android:title="@string/pref_title_rateandreview"
+            android:summary="@string/pref_summary_rateandreview"
+            app:icon="@drawable/ic_baseline_rate_review_24"
+            tools:isPreferenceVisible="true" />
+
+        <Preference
+            android:key="key_translate"
+            android:title="@string/pref_title_translate"
+            android:summary="@string/pref_summary_translate"
+            app:icon="@drawable/ic_baseline_translate_24">
+            <intent
+                android:action="android.intent.action.VIEW"
+                android:data="https://poeditor.com/join/project?hash=x9AzamDQO8" />
+        </Preference>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="key_privacy_tos"
+        android:title="@string/pref_category_terms"
+        app:isPreferenceVisible="false"
+        tools:isPreferenceVisible="true">
+
+        <Preference
+            android:key="key_privacypolicy"
+            android:title="@string/pref_title_privacypolicy"
+            app:icon="@drawable/ic_privacy_tip">
+            <intent
+                android:action="android.intent.action.VIEW"
+                android:data="https://simpleweather-91d01.web.app/privacy-policy" />
+        </Preference>
+
+        <Preference
+            android:key="key_tos"
+            android:title="@string/pref_title_termsofservice"
+            app:icon="@drawable/ic_outline_contract">
+            <intent
+                android:action="android.intent.action.VIEW"
+                android:data="https://play.google.com/about/play-terms/" />
+        </Preference>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/pref_category_version">
+
+        <Preference
+            android:key="key_aboutversion"
+            android:title="@string/app_name"
+            tools:summary="v0.00" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -1,0 +1,167 @@
+package com.thewizrd.simpleweather.receivers
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.util.Log
+import com.thewizrd.common.wearable.WearableSettings
+import com.thewizrd.shared_resources.Constants
+import com.thewizrd.shared_resources.appLib
+import com.thewizrd.shared_resources.di.settingsManager
+import com.thewizrd.shared_resources.locationdata.LocationData
+import com.thewizrd.shared_resources.preferences.SettingsManager
+import com.thewizrd.shared_resources.utils.CommonActions
+import com.thewizrd.shared_resources.utils.DateTimeUtils
+import com.thewizrd.shared_resources.utils.JSONParser
+import com.thewizrd.shared_resources.utils.Logger
+import com.thewizrd.simpleweather.services.*
+import com.thewizrd.simpleweather.services.UpdaterUtils.Companion.updateAlarm
+import com.thewizrd.simpleweather.wearable.WearableWorker
+import com.thewizrd.simpleweather.wearable.WearableWorkerActions
+import com.thewizrd.simpleweather.widgets.WidgetType
+import com.thewizrd.simpleweather.widgets.WidgetUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+
+class CommonActionsBroadcastReceiver : BroadcastReceiver() {
+    companion object {
+        private const val TAG = "CommonActionsBroadcastReceiver"
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        when (intent.action) {
+            CommonActions.ACTION_SETTINGS_UPDATEAPI -> {
+                WearableWorker.enqueueAction(
+                    context,
+                    WearableWorkerActions.ACTION_SENDSETTINGSUPDATE
+                )
+                WeatherUpdaterWorker.enqueueAction(
+                    context,
+                    WeatherUpdaterWorker.ACTION_UPDATEWEATHER
+                )
+            }
+            CommonActions.ACTION_SETTINGS_UPDATEGPS -> {
+                WearableWorker.enqueueAction(context, WearableWorkerActions.ACTION_SENDUPDATE)
+                // Reset notification time for new location
+                settingsManager.setLastPoPChanceNotificationTime(
+                    ZonedDateTime.of(
+                        DateTimeUtils.LOCALDATETIME_MIN,
+                        ZoneOffset.UTC
+                    )
+                )
+            }
+            CommonActions.ACTION_SETTINGS_UPDATEUNIT -> {
+                WearableWorker.enqueueAction(
+                    context,
+                    WearableWorkerActions.ACTION_SENDSETTINGSUPDATE
+                )
+                WidgetUpdaterWorker.enqueueAction(context, WidgetUpdaterWorker.ACTION_UPDATEWIDGETS)
+            }
+            CommonActions.ACTION_SETTINGS_UPDATEREFRESH -> {
+                WearableWorker.enqueueAction(
+                    context,
+                    WearableWorkerActions.ACTION_SENDSETTINGSUPDATE
+                )
+                updateAlarm(context)
+            }
+            CommonActions.ACTION_WEATHER_SENDLOCATIONUPDATE -> {
+                WearableWorker.enqueueAction(
+                    context,
+                    WearableWorkerActions.ACTION_SENDLOCATIONUPDATE
+                )
+                if (intent.getBooleanExtra(CommonActions.EXTRA_FORCEUPDATE, true)) {
+                    WeatherUpdaterWorker.enqueueAction(
+                        context,
+                        WeatherUpdaterWorker.ACTION_UPDATEWEATHER
+                    )
+                }
+                // Reset notification time for new location
+                settingsManager.setLastPoPChanceNotificationTime(
+                    ZonedDateTime.of(
+                        DateTimeUtils.LOCALDATETIME_MIN,
+                        ZoneOffset.UTC
+                    )
+                )
+            }
+            CommonActions.ACTION_WEATHER_UPDATEWIDGETLOCATION -> {
+                val oldKey = intent.getStringExtra(Constants.WIDGETKEY_OLDKEY)
+                val locationJson = intent.getStringExtra(Constants.WIDGETKEY_LOCATION)
+
+                appLib.appScope.launch(Dispatchers.Default) {
+                    val location = JSONParser.deserializer(locationJson, LocationData::class.java)
+
+                    if (WidgetUtils.exists(oldKey) && location != null) {
+                        WidgetUtils.updateWidgetIds(oldKey, location)
+                    }
+                }
+            }
+            CommonActions.ACTION_WEATHER_SENDWEATHERUPDATE -> {
+                val partialUpdate =
+                    intent.getBooleanExtra(WearableSettings.KEY_PARTIAL_WEATHER_UPDATE, false)
+
+                WearableWorker.enqueueAction(
+                    context,
+                    if (partialUpdate) {
+                        WearableWorkerActions.ACTION_SENDPARTIALWEATHERUPDATE
+                    } else {
+                        WearableWorkerActions.ACTION_SENDWEATHERUPDATE
+                    }
+                )
+            }
+            CommonActions.ACTION_SETTINGS_SENDUPDATE -> {
+                WearableWorker.enqueueAction(
+                    context,
+                    WearableWorkerActions.ACTION_SENDSETTINGSUPDATE
+                )
+            }
+            CommonActions.ACTION_WIDGET_RESETWIDGETS -> {
+                WidgetWorker.enqueueResetGPSWidgets(context)
+            }
+            CommonActions.ACTION_WIDGET_REFRESHWIDGETS -> {
+                WidgetWorker.enqueueRefreshGPSWidgets(context)
+            }
+            CommonActions.ACTION_IMAGES_UPDATEWORKER -> {
+                ImageDatabaseWorker.enqueueAction(
+                    context,
+                    ImageDatabaseWorkerActions.ACTION_UPDATEALARM
+                )
+            }
+            CommonActions.ACTION_SETTINGS_UPDATEDAILYNOTIFICATION -> {
+                UpdaterUtils.enableDailyNotificationService(
+                    context,
+                    SettingsManager(context.applicationContext).isDailyNotificationEnabled()
+                )
+            }
+            CommonActions.ACTION_WEATHER_LOCATIONREMOVED -> {
+                val query = intent.getStringExtra(Constants.WIDGETKEY_LOCATIONQUERY)
+
+                appLib.appScope.launch(Dispatchers.Default) {
+                    // Get widgets associated with key
+                    val ids = WidgetUtils.getWidgetIds(query)
+
+                    ids.forEach { appWidgetId ->
+                        if (WidgetUtils.getWidgetTypeFromID(appWidgetId) != WidgetType.Widget4x3Locations) {
+                            // Remove location data
+                            WidgetUtils.saveLocationData(appWidgetId, null)
+                        } else {
+                            // Remove old location
+                            if (query != null) {
+                                val locationSet =
+                                    WidgetUtils.getLocationDataSet(appWidgetId)?.minusElement(query)
+                                WidgetUtils.saveLocationDataSet(appWidgetId, locationSet)
+                            }
+                        }
+                    }
+
+                    if (query != null) {
+                        WidgetUtils.removeLocation(query)
+                    }
+                }
+            }
+        }
+
+        Logger.writeLine(Log.INFO, "%s: Intent Action = %s", TAG, intent.action)
+    }
+}

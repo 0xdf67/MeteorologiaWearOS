@@ -1,0 +1,698 @@
+package com.thewizrd.weather_api.nws
+
+import android.util.Log
+import com.squareup.moshi.JsonReader
+import com.thewizrd.shared_resources.R
+import com.thewizrd.shared_resources.exceptions.ErrorStatus
+import com.thewizrd.shared_resources.exceptions.WeatherException
+import com.thewizrd.shared_resources.icons.WeatherIcons
+import com.thewizrd.shared_resources.locationdata.LocationData
+import com.thewizrd.shared_resources.locationdata.LocationQuery
+import com.thewizrd.shared_resources.okhttp3.OkHttp3Utils.await
+import com.thewizrd.shared_resources.okhttp3.OkHttp3Utils.getStream
+import com.thewizrd.shared_resources.remoteconfig.remoteConfigService
+import com.thewizrd.shared_resources.sharedDeps
+import com.thewizrd.shared_resources.utils.JSONParser
+import com.thewizrd.shared_resources.utils.LocationUtils
+import com.thewizrd.shared_resources.utils.Logger
+import com.thewizrd.shared_resources.utils.ZoneIdCompat
+import com.thewizrd.shared_resources.utils.createUnsupportedLocationException
+import com.thewizrd.shared_resources.utils.forEachString
+import com.thewizrd.shared_resources.utils.getAsJSONArray
+import com.thewizrd.shared_resources.utils.getAsJSONObject
+import com.thewizrd.shared_resources.weatherdata.WeatherAPI
+import com.thewizrd.shared_resources.weatherdata.model.Weather
+import com.thewizrd.shared_resources.weatherdata.model.isNullOrInvalid
+import com.thewizrd.weather_api.extras.cacheRequestIfNeeded
+import com.thewizrd.weather_api.nws.hourly.HourlyForecastResponse
+import com.thewizrd.weather_api.nws.hourly.Location
+import com.thewizrd.weather_api.nws.hourly.PeriodsItem
+import com.thewizrd.weather_api.nws.observation.ForecastResponse
+import com.thewizrd.weather_api.nws.points.HourlyPointsResponse
+import com.thewizrd.weather_api.nws.points.PointsResponse
+import com.thewizrd.weather_api.nws.points.toResponse
+import com.thewizrd.weather_api.smc.SunMoonCalcProvider
+import com.thewizrd.weather_api.utils.APIRequestUtils.addUserAgent
+import com.thewizrd.weather_api.utils.APIRequestUtils.checkForErrors
+import com.thewizrd.weather_api.utils.APIRequestUtils.checkRateLimit
+import com.thewizrd.weather_api.utils.logMissingIcon
+import com.thewizrd.weather_api.weatherModule
+import com.thewizrd.weather_api.weatherapi.location.WeatherApiLocationProvider
+import com.thewizrd.weather_api.weatherdata.WeatherProviderImpl
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.internal.closeQuietly
+import okio.buffer
+import okio.source
+import org.json.JSONObject
+import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.text.DecimalFormat
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.util.Collections
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+
+class NWSWeatherProvider : WeatherProviderImpl() {
+    companion object {
+        private const val FORECAST_QUERY_URL =
+            "https://forecast.weather.gov/MapClick.php?%s&FcstType=json"
+        private const val HRFORECAST_QUERY_URL =
+            "https://forecast.weather.gov/MapClick.php?%s&FcstType=digitalJSON"
+        private const val POINTS_QUERY_URL = "https://api.weather.gov/points/%s"
+        private const val MAX_ATTEMPTS = 2
+    }
+
+    init {
+        mLocationProvider = runCatching {
+            weatherModule.locationProviderFactory.getLocationProvider(
+                remoteConfigService.getLocationProvider(
+                    getWeatherAPI()
+                )
+            )
+        }.getOrElse {
+            WeatherApiLocationProvider()
+        }
+    }
+
+    override fun getWeatherAPI(): String {
+        return WeatherAPI.NWS
+    }
+
+    override fun supportsWeatherLocale(): Boolean {
+        return false
+    }
+
+    override fun isRegionSupported(location: LocationData): Boolean {
+        return LocationUtils.isNWSSupported(location)
+    }
+
+    override fun isRegionSupported(location: LocationQuery): Boolean {
+        return LocationUtils.isNWSSupported(location)
+    }
+
+    override fun isKeyRequired(): Boolean {
+        return false
+    }
+
+    override suspend fun isKeyValid(key: String?): Boolean {
+        return false
+    }
+
+    override fun getAPIKey(): String? {
+        return null
+    }
+
+    @Throws(WeatherException::class)
+    override suspend fun getWeatherData(location: LocationData): Weather =
+        withContext(Dispatchers.IO) {
+            var weather: Weather?
+
+            // NWS only supports locations in U.S. or U.S. territories
+            if (!LocationUtils.isNWSSupported(location)) {
+                throw WeatherException(ErrorStatus.LOCATIONNOTSUPPORTED)
+                    .initCause(createUnsupportedLocationException(getWeatherAPI(), location))
+            }
+
+            val query = updateLocationQuery(location)
+
+            val client = sharedDeps.httpClient
+            var observationResponse: Response? = null
+            var forecastResponse: Response? = null
+            var wEx: WeatherException? = null
+
+            try {
+                // If were under rate limit, deny request
+                checkRateLimit()
+
+                val observationRequest = Request.Builder()
+                    .cacheRequestIfNeeded(isKeyRequired(), 15, TimeUnit.MINUTES)
+                    .url(String.format(FORECAST_QUERY_URL, query))
+                    .addHeader("Accept", "application/ld+json")
+                    .addUserAgent(context)
+                    .build()
+
+                // Connect to webstream
+                observationResponse = client.newCall(observationRequest).await()
+                checkForErrors(observationResponse)
+
+                val observationStream = observationResponse.getStream()
+
+                // Load point json data
+                val observationData: ForecastResponse =
+                    JSONParser.deserializer(observationStream, ForecastResponse::class.java)!!
+
+                // End Stream
+                observationStream.closeQuietly()
+
+                val forecastRequest = Request.Builder()
+                    .url(String.format(HRFORECAST_QUERY_URL, query))
+                    .cacheRequestIfNeeded(isKeyRequired(), 1, TimeUnit.HOURS)
+                    .addHeader("Accept", "application/ld+json")
+                    .addUserAgent(context)
+                    .build()
+
+                // Connect to webstream
+                forecastResponse = client.newCall(forecastRequest).await()
+                checkForErrors(forecastResponse)
+
+                val forecastStream = forecastResponse.getStream()
+
+                // Load point json data
+                var forecastData: HourlyForecastResponse =
+                    createHourlyForecastResponse(forecastStream)
+
+                if (forecastData.periodsItems.isNullOrEmpty()) {
+                    forecastData = getPointsHourlyForecastResponse(location)
+                }
+
+                // End Stream
+                forecastStream.closeQuietly()
+
+                weather = createWeatherData(observationData, forecastData)
+            } catch (ex: Exception) {
+                weather = null
+                if (ex is IOException) {
+                    wEx = WeatherException(ErrorStatus.NETWORKERROR, ex)
+                } else if (ex is WeatherException) {
+                    wEx = ex
+                }
+                Logger.writeLine(Log.ERROR, ex, "NWSWeatherProvider: error getting weather data")
+            } finally {
+                observationResponse?.closeQuietly()
+            }
+
+            if (wEx == null && weather.isNullOrInvalid()) {
+                wEx = WeatherException(ErrorStatus.NOWEATHER)
+            } else if (weather != null) {
+                weather.query = query
+            }
+
+            if (wEx != null) throw wEx
+
+            return@withContext weather!!
+        }
+
+    private fun createHourlyForecastResponse(forecastStream: InputStream): HourlyForecastResponse {
+        forecastStream.source().buffer().use { buffer ->
+            val forecastData = HourlyForecastResponse()
+            val forecastParser = JsonReader.of(buffer)
+
+            if (forecastParser.hasNext()) {
+                val element = forecastParser.readJsonValue()
+                val fcastRoot = (element as? Map<*, *>)?.let {
+                    JSONObject(it)
+                } ?: return forecastData
+
+                forecastData.creationDate = fcastRoot.getString("creationDate")
+                forecastData.location = Location()
+
+                fcastRoot.getAsJSONObject("location")?.let { location ->
+                    forecastData.location.latitude = location.getDouble("latitude")
+                    forecastData.location.longitude = location.getDouble("longitude")
+                }
+
+                val periodNameList = fcastRoot.getAsJSONObject("PeriodNameList")
+                val sortedKeys =
+                    periodNameList?.keys()?.asSequence()?.toSortedSet(Comparator { o1, o2 ->
+                        val x = o1.toIntOrNull()
+                        val y = o2.toIntOrNull()
+                        if (x != null && y != null) {
+                            Integer.compare(x, y)
+                        } else {
+                            if (o1 == null) {
+                                return@Comparator -1
+                            }
+                            if (o2 == null) {
+                                1
+                            } else o1.compareTo(o2)
+                        }
+                    }) ?: emptySet()
+
+                forecastData.periodsItems = ArrayList(sortedKeys.size)
+
+                for (periodNumber in sortedKeys) {
+                    val periodName = periodNameList?.getString(periodNumber) ?: continue
+
+                    if (!fcastRoot.has(periodName)) continue
+
+                    val item = PeriodsItem()
+
+                    val periodObj = fcastRoot.getAsJSONObject(periodName) ?: continue
+                    val timeArr = periodObj.getAsJSONArray("time") ?: continue
+                    val unixTimeArr = periodObj.getAsJSONArray("unixtime") ?: continue
+                    val tempArr = periodObj.getAsJSONArray("temperature") ?: continue
+                    val iconArr = periodObj.getAsJSONArray("iconLink") ?: continue
+                    val conditionTxtArr = periodObj.getAsJSONArray("weather") ?: continue
+                    val windChillArr = periodObj.getAsJSONArray("windChill")
+                    val windSpeedArr = periodObj.getAsJSONArray("windSpeed")
+                    val cloudAmtArr = periodObj.getAsJSONArray("cloudAmount")
+                    val popArr = periodObj.getAsJSONArray("pop")
+                    val humidityArr = periodObj.getAsJSONArray("relativeHumidity")
+                    val windGustArr = periodObj.getAsJSONArray("windGust")
+                    val windDirArr = periodObj.getAsJSONArray("windDirection")
+
+                    item.periodName = periodObj.getString("periodName")
+
+                    item.time = ArrayList(timeArr.length())
+                    timeArr.forEachString { time ->
+                        item.time.add(time)
+                    }
+
+                    item.unixtime = ArrayList(unixTimeArr.length())
+                    unixTimeArr.forEachString { time ->
+                        item.unixtime.add(time)
+                    }
+
+                    item.temperature = ArrayList(tempArr.length())
+                    tempArr.forEachString { temp ->
+                        item.temperature.add(temp)
+                    }
+
+                    item.iconLink = ArrayList(iconArr.length())
+                    iconArr.forEachString { icon ->
+                        item.iconLink.add(icon)
+                    }
+
+                    item.weather = ArrayList(conditionTxtArr.length())
+                    conditionTxtArr.forEachString { condition ->
+                        item.weather.add(condition)
+                    }
+
+                    if (windChillArr != null) {
+                        item.windChill = ArrayList(windChillArr.length())
+                        windChillArr.forEachString { windChill ->
+                            item.windChill.add(windChill)
+                        }
+                    } else {
+                        item.windChill = Collections.nCopies<String?>(unixTimeArr.length(), null)
+                    }
+
+                    if (windSpeedArr != null) {
+                        item.windSpeed = ArrayList(windSpeedArr.length())
+                        windSpeedArr.forEachString { windSpeed ->
+                            item.windSpeed.add(windSpeed)
+                        }
+                    } else {
+                        item.windSpeed = Collections.nCopies<String?>(unixTimeArr.length(), null)
+                    }
+
+                    if (cloudAmtArr != null) {
+                        item.cloudAmount = ArrayList(cloudAmtArr.length())
+                        cloudAmtArr.forEachString { cloudAmt ->
+                            item.cloudAmount.add(cloudAmt)
+                        }
+                    } else {
+                        item.cloudAmount = Collections.nCopies<String?>(unixTimeArr.length(), null)
+                    }
+
+                    if (popArr != null) {
+                        item.pop = ArrayList(popArr.length())
+                        popArr.forEachString { pop ->
+                            item.pop.add(pop)
+                        }
+                    } else {
+                        item.pop = Collections.nCopies<String?>(unixTimeArr.length(), null)
+                    }
+
+                    if (humidityArr != null) {
+                        item.relativeHumidity = ArrayList(humidityArr.length())
+                        humidityArr.forEachString { humidity ->
+                            item.relativeHumidity.add(humidity)
+                        }
+                    } else {
+                        item.relativeHumidity =
+                            Collections.nCopies<String?>(unixTimeArr.length(), null)
+                    }
+
+                    if (windGustArr != null) {
+                        item.windGust = ArrayList(windGustArr.length())
+                        windGustArr.forEachString { windGust ->
+                            item.windGust.add(windGust)
+                        }
+                    } else {
+                        item.windGust = Collections.nCopies<String?>(unixTimeArr.length(), null)
+                    }
+
+                    if (windDirArr != null) {
+                        item.windDirection = ArrayList(windDirArr.length())
+                        windDirArr.forEachString { windDir ->
+                            item.windDirection.add(windDir)
+                        }
+                    } else {
+                        item.windDirection =
+                            Collections.nCopies<String?>(unixTimeArr.length(), null)
+                    }
+
+                    forecastData.periodsItems.add(item)
+                }
+            }
+
+            return forecastData
+        }
+    }
+
+    private suspend fun getPointsHourlyForecastResponse(location: LocationData): HourlyForecastResponse =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val client = sharedDeps.httpClient
+
+                val pointsRequest = Request.Builder()
+                    .url(String.format(POINTS_QUERY_URL, updatePointsLocationQuery(location)))
+                    .cacheRequestIfNeeded(isKeyRequired(), 1, TimeUnit.HOURS)
+                    .addHeader("Accept", "application/ld+json")
+                    .addUserAgent(context)
+                    .build()
+
+                val pointsResponse = client.newCall(pointsRequest).await()
+                checkForErrors(pointsResponse)
+
+                // Load point json data
+                val pointsResponseData: PointsResponse = JSONParser.deserializer(
+                    pointsResponse.body!!.string(),
+                    PointsResponse::class.java
+                )!!
+
+                val forecastRequest = Request.Builder()
+                    .url(pointsResponseData.forecastHourly!! + "?units=us")
+                    .cacheRequestIfNeeded(isKeyRequired(), 1, TimeUnit.HOURS)
+                    .addHeader("Accept", "application/ld+json")
+                    .addUserAgent(context)
+                    .build()
+
+                var forecastResponseData: HourlyPointsResponse? = null
+
+                for (i in 0 until MAX_ATTEMPTS) {
+                    runCatching {
+                        val response = client.newCall(forecastRequest).await()
+
+                        response.use {
+                            if (it.code != HttpURLConnection.HTTP_BAD_REQUEST) {
+                                checkForErrors(it)
+
+                                forecastResponseData = JSONParser.deserializer(
+                                    it.getStream(),
+                                    HourlyPointsResponse::class.java
+                                )!!
+                            }
+                        }
+                    }
+
+                    if (forecastResponseData == null) {
+                        delay(1000)
+                    } else {
+                        break
+                    }
+                }
+
+                checkNotNull(forecastResponseData).toResponse(pointsResponseData)
+            }.getOrDefault(HourlyForecastResponse())
+        }
+
+    @Throws(WeatherException::class)
+    override suspend fun updateWeatherData(location: LocationData, weather: Weather) {
+        super.updateWeatherData(location, weather)
+
+        val offset = location.tzOffset
+
+        weather.updateTime = weather.updateTime!!.withZoneSameInstant(offset)
+        weather.condition!!.observationTime =
+            weather.condition!!.observationTime.withZoneSameInstant(offset)
+
+        // NWS does not provide astrodata; calculate this ourselves (using their calculator)
+        val solCalcData =
+            SolCalcAstroProvider().getAstronomyData(location, weather.condition!!.observationTime)
+        weather.astronomy = try {
+            SunMoonCalcProvider().getAstronomyData(location, weather.condition!!.observationTime)
+        } catch (e: WeatherException) {
+            Logger.writeLine(Log.ERROR, e)
+            solCalcData
+        }
+        weather.astronomy!!.sunrise = solCalcData.sunrise
+        weather.astronomy!!.sunset = solCalcData.sunset
+
+        // Update icons
+        val now = ZonedDateTime.now(ZoneOffset.UTC).withZoneSameInstant(offset).toLocalTime()
+        val sunrise = weather.astronomy!!.sunrise.toLocalTime()
+        val sunset = weather.astronomy!!.sunset.toLocalTime()
+
+        weather.condition!!.icon =
+            getWeatherIcon(now.isBefore(sunrise) || now.isAfter(sunset), weather.condition!!.icon)
+
+        for (hr_forecast in weather.hrForecast!!) {
+            val hrf_date = hr_forecast.date.withZoneSameInstant(offset)
+            hr_forecast.date = hrf_date
+            val hrf_localTime = hrf_date.toLocalTime()
+            hr_forecast.icon = getWeatherIcon(hrf_localTime.isBefore(sunrise) || hrf_localTime.isAfter(sunset), hr_forecast.icon)
+        }
+    }
+
+    override suspend fun updateLocationQuery(weather: Weather): String {
+        val df = DecimalFormat.getInstance(Locale.ROOT) as DecimalFormat
+        df.applyPattern("0.####")
+        return String.format(
+            Locale.ROOT,
+            "lat=%s&lon=%s",
+            df.format(weather.location!!.latitude),
+            df.format(weather.location!!.longitude)
+        )
+    }
+
+    override suspend fun updateLocationQuery(location: LocationData): String {
+        val df = DecimalFormat.getInstance(Locale.ROOT) as DecimalFormat
+        df.applyPattern("0.####")
+        return String.format(Locale.ROOT, "lat=%s&lon=%s", df.format(location.latitude), location.longitude)
+    }
+
+    private fun updatePointsLocationQuery(weather: Weather): String {
+        val df = DecimalFormat.getInstance(Locale.ROOT) as DecimalFormat
+        df.applyPattern("0.####")
+        return String.format(
+            Locale.ROOT,
+            "%s,%s",
+            df.format(weather.location!!.latitude),
+            weather.location!!.longitude
+        )
+    }
+
+    private fun updatePointsLocationQuery(location: LocationData): String {
+        val df = DecimalFormat.getInstance(Locale.ROOT) as DecimalFormat
+        df.applyPattern("0.####")
+        return String.format(Locale.ROOT, "%s,%s", df.format(location.latitude), location.longitude)
+    }
+
+    override fun getWeatherIcon(icon: String?): String {
+        return getWeatherIcon(false, icon)
+    }
+
+    override fun getWeatherIcon(isNight: Boolean, icon: String?): String {
+        // Example: https://api.weather.gov/icons/land/day/tsra_hi,20?size=medium
+        var weatherIcon = ""
+
+        if (icon == null) return WeatherIcons.NA
+
+        weatherIcon = if (icon.contains("fog") || icon == "fg.png" || icon == "nfg.png" || icon.contains("nfg") || icon.matches(".*([/]?)([n]?)fg([0-9]{0,3})((.png)?).*".toRegex())) {
+            if (isNight) WeatherIcons.NIGHT_FOG else WeatherIcons.DAY_FOG
+        } else if (icon.contains("blizzard")) {
+            if (isNight) WeatherIcons.NIGHT_ALT_SNOW_WIND else WeatherIcons.DAY_SNOW_WIND
+        } else if (icon.contains("cold")) {
+            WeatherIcons.SNOWFLAKE_COLD
+        } else if (icon.contains("hot")) {
+            if (isNight) WeatherIcons.NIGHT_HOT else WeatherIcons.DAY_HOT
+        } else if (icon.contains("haze") || icon == "hz.png" || icon.matches(".*([/]?)hz([0-9]{0,3})((.png)?).*".toRegex())) {
+            if (isNight) WeatherIcons.NIGHT_HAZE else WeatherIcons.DAY_HAZE
+        } else if (icon.contains("smoke") || icon == "fu.png" || icon == "nfu.png" || icon.contains(
+                "nfu"
+            ) || icon.matches(".*([/]?)([n]?)fu([0-9]{0,3})((.png)?).*".toRegex())
+        ) {
+            WeatherIcons.SMOKE
+        } else if (icon.contains("dust") || icon == "du.png" || icon == "ndu.png" || icon.contains("ndu") || icon.matches(
+                ".*([/]?)([n]?)du([0-9]{0,3})((.png)?).*".toRegex()
+            )
+        ) {
+            WeatherIcons.DUST
+        } else if (icon.contains("tropical_storm") || icon.contains("hurricane") || icon.contains("hur_warn") || icon.contains(
+                "hur_watch"
+            ) || icon.contains("ts_warn") || icon.contains("ts_watch") || icon.contains("ts_nowarn")
+        ) {
+            WeatherIcons.HURRICANE
+        } else if (icon.contains("tsra")) {
+            if (isNight) WeatherIcons.NIGHT_ALT_THUNDERSTORM else WeatherIcons.DAY_THUNDERSTORM
+        } else if (icon.contains("tornado") || icon.contains("tor") || icon == "tor.png" || icon == "fc.png" || icon == "nfc.png" || icon.contains(
+                "nfc"
+            ) || icon.matches(".*([/]?)([n]?)fc([0-9]{0,3})((.png)?).*".toRegex())
+        ) {
+            WeatherIcons.TORNADO
+        } else if (icon.contains("rain_showers") || icon.contains("shra") || icon.contains("shwrs")) {
+            if (isNight) WeatherIcons.NIGHT_ALT_SHOWERS else WeatherIcons.DAY_SHOWERS
+        } else if (icon.contains("fzra") || icon.contains("rain_sleet") || icon.contains("rain_snow") || icon.contains("ra_sn")) {
+            WeatherIcons.RAIN_MIX
+        } else if (icon.contains("sleet") || icon.contains("raip")) {
+            WeatherIcons.SLEET
+        } else if (icon.contains("minus_ra")) {
+            if (isNight) WeatherIcons.NIGHT_ALT_SPRINKLE else WeatherIcons.DAY_SPRINKLE
+        } else if (icon.contains("rain") || icon == "ra.png" || icon == "nra.png" || icon.contains("nra") || icon.matches(".*([/]?)([n]?)ra([0-9]{0,3})((.png)?).*".toRegex())) {
+            WeatherIcons.RAIN
+        } else if (icon.contains("snow") || icon == "sn.png" || icon == "nsn.png" || icon.contains("nsn") || icon.matches(".*([/]?)([n]?)sn([0-9]{0,3})((.png)?).*".toRegex())) {
+            WeatherIcons.SNOW
+        } else if (icon.contains("snip") || icon == "ip.png" || icon == "nip.png" || icon.contains("nip") || icon.matches(".*([/]?)([n]?)ip([0-9]{0,3})((.png)?).*".toRegex())) {
+            WeatherIcons.HAIL
+        } else if (icon.contains("wind_bkn") || icon.contains("wind_ovc") || icon.contains("wind_sct")) {
+            if (isNight) WeatherIcons.NIGHT_ALT_CLOUDY_WINDY else WeatherIcons.DAY_CLOUDY_WINDY
+        } else if (icon.contains("wind_skc") || icon.contains("wind_few") || icon.contains("wind")) {
+            if (isNight) WeatherIcons.NIGHT_WINDY else WeatherIcons.DAY_WINDY
+        } else if (icon.contains("ovc")) {
+            WeatherIcons.OVERCAST
+        } else if (icon.contains("sct") || icon.contains("few")) {
+            if (isNight) WeatherIcons.NIGHT_ALT_PARTLY_CLOUDY else WeatherIcons.DAY_PARTLY_CLOUDY
+        } else if (icon.contains("bkn")) {
+            if (isNight) WeatherIcons.NIGHT_ALT_CLOUDY else WeatherIcons.DAY_CLOUDY
+        } else if (icon.contains("skc")) {
+            if (isNight) WeatherIcons.NIGHT_CLEAR else WeatherIcons.DAY_SUNNY
+        } else {
+            logMissingIcon(icon)
+            if (isNight) WeatherIcons.NIGHT_CLEAR else WeatherIcons.DAY_SUNNY
+        }
+
+        if (weatherIcon.isBlank()) {
+            // Not Available
+            logMissingIcon(icon)
+            weatherIcon = WeatherIcons.NA
+        }
+
+        return weatherIcon
+    }
+
+    override fun getWeatherCondition(icon: String?): String {
+        if (icon == null) return context.getString(R.string.weather_notavailable)
+
+        if (!icon.contains(".png") && !icon.contains("weather.gov")) {
+            return super.getWeatherCondition(icon)
+        }
+
+        return if (icon.contains("fog") || icon == "fg.png" || icon == "nfg.png" || icon.contains("nfg") || icon.matches(
+                ".*([/]?)([n]?)fg([0-9]{0,3})((.png)?).*".toRegex()
+            )
+        ) {
+            context.getString(R.string.weather_fog)
+        } else if (icon.contains("blizzard")) {
+            context.getString(R.string.weather_blizzard)
+        } else if (icon.contains("cold")) {
+            context.getString(R.string.weather_cold)
+        } else if (icon.contains("hot")) {
+            context.getString(R.string.weather_hot)
+        } else if (icon.contains("haze") || icon == "hz.png" || icon.matches(".*([/]?)hz([0-9]{0,3})((.png)?).*".toRegex())) {
+            context.getString(R.string.weather_haze)
+        } else if (icon.contains("smoke") || icon == "fu.png" || icon == "nfu.png" || icon.contains("nfu") || icon.matches(".*([/]?)([n]?)fu([0-9]{0,3})((.png)?).*".toRegex())) {
+            context.getString(R.string.weather_smoky)
+        } else if (icon.contains("dust") || icon == "du.png" || icon == "ndu.png" || icon.contains("ndu") || icon.matches(".*([/]?)([n]?)du([0-9]{0,3})((.png)?).*".toRegex())) {
+            context.getString(R.string.weather_dust)
+        } else if (icon.contains("tropical_storm") || icon.contains("ts_warn") || icon.contains("ts_watch") || icon.contains("ts_nowarn")) {
+            context.getString(R.string.weather_tropicalstorm)
+        } else if (icon.contains("hurricane") || icon.contains("hur_warn") || icon.contains("hur_watch")) {
+            context.getString(R.string.weather_hurricane)
+        } else if (icon.contains("tsra")) {
+            context.getString(R.string.weather_tstorms)
+        } else if (icon.contains("tornado") || icon.contains("tor") || icon == "tor.png" || icon == "fc.png" || icon == "nfc.png" || icon.contains(
+                "nfc"
+            ) || icon.matches(".*([/]?)([n]?)fc([0-9]{0,3})((.png)?).*".toRegex())
+        ) {
+            context.getString(R.string.weather_tornado)
+        } else if (icon.contains("rain_showers") || icon.contains("shra") || icon.contains("shwrs")) {
+            context.getString(R.string.weather_rainshowers)
+        } else if (icon.contains("rain_sleet") || icon.contains("raip")) {
+            context.getString(R.string.weather_rainandsleet)
+        } else if (icon.contains("rain_snow") || icon.contains("ra_sn")) {
+            context.getString(R.string.weather_rainandsnow)
+        } else if (icon.contains("fzra")) {
+            context.getString(R.string.weather_freezingrain)
+        } else if (icon.contains("snow_sleet")) {
+            context.getString(R.string.weather_snowandsleet)
+        } else if (icon.contains("sleet")) {
+            context.getString(R.string.weather_sleet)
+        } else if (icon.contains("minus_ra")) {
+            context.getString(R.string.weather_lightrain)
+        } else if (icon.contains("rain") || icon == "ra.png" || icon == "nra.png" || icon.contains("nra") || icon.matches(
+                ".*([/]?)([n]?)ra([0-9]{0,3})((.png)?).*".toRegex()
+            )
+        ) {
+            context.getString(R.string.weather_rain)
+        } else if (icon.contains("snow") || icon == "sn.png" || icon == "nsn.png" || icon.contains("nsn") || icon.matches(
+                ".*([/]?)([n]?)sn([0-9]{0,3})((.png)?).*".toRegex()
+            )
+        ) {
+            context.getString(R.string.weather_snow)
+        } else if (icon.contains("snip") || icon == "ip.png" || icon == "nip.png" || icon.contains("nip") || icon.matches(
+                ".*([/]?)([n]?)ip([0-9]{0,3})((.png)?).*".toRegex()
+            )
+        ) {
+            context.getString(R.string.weather_hail)
+        } else if (icon.contains("wind_bkn") || icon.contains("wind_ovc") || icon.contains("wind_sct") || icon.contains(
+                "wind"
+            )
+        ) {
+            context.getString(R.string.weather_windy)
+        } else if (icon.contains("ovc")) {
+            context.getString(R.string.weather_overcast)
+        } else if (icon.contains("sct") || icon.contains("few")) {
+            context.getString(R.string.weather_partlycloudy)
+        } else if (icon.contains("bkn")) {
+            context.getString(R.string.weather_partlycloudy)
+        } else if (icon.contains("skc")) {
+            context.getString(R.string.weather_clearsky)
+        } else {
+            super.getWeatherCondition(icon)
+        }
+    }
+
+    // Some conditions can be for any time of day
+    // So use sunrise/set data as fallback
+    override fun isNight(weather: Weather): Boolean {
+        var isNight = super.isNight(weather)
+
+        when (weather.condition?.icon) {
+            // The following cases can be present at any time of day
+            WeatherIcons.SNOWFLAKE_COLD,
+            WeatherIcons.SMOKE,
+            WeatherIcons.DUST,
+            WeatherIcons.HURRICANE,
+            WeatherIcons.TORNADO,
+            WeatherIcons.RAIN_MIX,
+            WeatherIcons.SLEET,
+            WeatherIcons.RAIN,
+            WeatherIcons.SNOW,
+            WeatherIcons.HAIL,
+            WeatherIcons.OVERCAST -> {
+                if (!isNight) {
+                    // Fallback to sunset/rise time just in case
+                    var tz: ZoneOffset? = null
+                    if (!weather.location!!.tzLong.isNullOrBlank()) {
+                        val id = ZoneIdCompat.of(weather.location!!.tzLong)
+                        tz = id.rules.getOffset(Instant.now())
+                    }
+                    if (tz == null) {
+                        tz = weather.location!!.tzOffset
+                    }
+
+                    val sunrise = weather.astronomy?.sunrise?.toLocalTime() ?: LocalTime.of(6, 0)
+                    val sunset = weather.astronomy?.sunset?.toLocalTime() ?: LocalTime.of(18, 0)
+
+                    val now = ZonedDateTime.now(tz).toLocalTime()
+
+                    // Determine whether its night using sunset/rise times
+                    if (now.toNanoOfDay() < sunrise.toNanoOfDay() || now.toNanoOfDay() > sunset.toNanoOfDay()) isNight =
+                        true
+                }
+            }
+        }
+
+        return isNight
+    }
+}

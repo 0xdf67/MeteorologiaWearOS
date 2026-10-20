@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- WeatherNow -->
+    <dimen name="moonriseset_text_size">18sp</dimen>
+    <dimen name="moonriseset_image_size">36dp</dimen>
+    <dimen name="aqi_forecast_textsize">16sp</dimen>
+    <!-- Forecast -->
+    <dimen name="weather_summary_text_size">14sp</dimen>
+    <dimen name="weather_detail_item_textSize">16sp</dimen>
+    <!-- Notification -->
+    <dimen name="not_horiz_padding">8dp</dimen>
+    <dimen name="not_vert_padding">4dp</dimen>
+</resources>

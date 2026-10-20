@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="android.view.View" />
+
+        <variable
+            name="graphModel"
+            type="com.thewizrd.simpleweather.controls.viewmodels.ForecastGraphViewModel" />
+
+    </data>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="6dp"
+        android:layout_marginVertical="2dp"
+        style="@style/WeatherNow.CardView">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/forecast_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:paddingHorizontal="@dimen/section_label_horizontal_padding"
+                android:paddingVertical="@dimen/section_label_vertical_padding"
+                android:text="@{graphModel.graphData.graphLabel}"
+                android:textAppearance="@style/TextAppearance.WeatherNow.SectionLabel"
+                tools:text="Label" />
+
+            <com.thewizrd.simpleweather.controls.graphs.ForecastGraphPanel
+                android:id="@+id/forecast_graph_panel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:graphData="@{graphModel.graphData}"
+                tools:layout_height="@dimen/forecast_panel_height" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</layout>

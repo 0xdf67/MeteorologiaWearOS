@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    app:iconSpaceReserved="false">
+
+    <PreferenceCategory
+        android:key="key_catgeneral"
+        android:title="@string/pref_title_general"
+        app:iconSpaceReserved="false">
+
+        <com.thewizrd.simpleweather.preferences.ArrayMultiSelectListPreference
+            android:key="key_location"
+            android:title="@string/pref_location"
+            android:summary="%s"
+            android:persistent="false"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreference
+            android:defaultValue="true"
+            android:key="key_hidesettingsbtn"
+            android:persistent="false"
+            android:summary="@string/settingsbtn_pref_summary"
+            android:title="@string/settingsbtn_pref_title"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreference
+            android:defaultValue="true"
+            android:key="key_hiderefreshbtn"
+            android:persistent="false"
+            android:summary="@string/refreshbtn_pref_summary"
+            android:title="@string/refreshbtn_pref_title"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="key_catclockdate"
+        android:title="@string/pref_category_timeanddate"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            android:defaultValue="@null"
+            android:key="key_clockapp"
+            android:persistent="false"
+            android:summary="@string/summary_default"
+            android:title="@string/clock_pref_title"
+            app:iconSpaceReserved="false"
+            app:isPreferenceVisible="false" />
+
+        <Preference
+            android:defaultValue="@null"
+            android:key="key_calendarapp"
+            android:persistent="false"
+            android:summary="@string/summary_default"
+            android:title="@string/calendar_pref_title"
+            app:iconSpaceReserved="false"
+            app:isPreferenceVisible="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="key_background"
+        android:title="@string/pref_title_bgstyle"
+        app:iconSpaceReserved="false">
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/bgcolor_entries"
+            android:entryValues="@array/bgcolor_values"
+            android:key="key_bgcolor"
+            android:persistent="false"
+            android:summary="%s"
+            android:title="@string/pref_title_bgcolor"
+            app:iconSpaceReserved="false" />
+
+        <com.thewizrd.simpleweather.preferences.colorpreference.ColorPreference
+            android:defaultValue="#00000000"
+            android:key="key_bgcolorcode"
+            android:persistent="false"
+            android:title="@string/pref_title_bgcolorcode"
+            app:iconSpaceReserved="false" />
+
+        <com.thewizrd.simpleweather.preferences.colorpreference.ColorPreference
+            android:defaultValue="#FFFFFFFF"
+            android:key="key_txtcolorcode"
+            android:persistent="false"
+            android:title="@string/pref_title_txtcolorcode"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="key_txtshadow"
+            android:persistent="false"
+            android:summary="@string/pref_summary_txtshadow"
+            android:title="@string/pref_title_txtshadow"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:key="key_bgstyle"
+            android:persistent="false"
+            android:summary="%s"
+            android:title="@string/pref_title_bgstyle"
+            app:iconSpaceReserved="false"
+            app:isPreferenceVisible="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="key_custom_size"
+        android:title="@string/pref_category_customsize"
+        app:iconSpaceReserved="false"
+        app:isPreferenceVisible="false"
+        tools:isPreferenceVisible="true">
+
+        <com.thewizrd.common.preferences.SliderPreference
+            android:defaultValue="1"
+            android:key="key_textsize"
+            android:persistent="false"
+            android:summary="%s"
+            android:title="@string/pref_title_textsize"
+            app:sliderMin="0.5"
+            app:sliderMax="1.5"
+            app:sliderStepSize="0.125"
+            app:iconSpaceReserved="false" />
+
+        <com.thewizrd.common.preferences.SliderPreference
+            android:defaultValue="1"
+            android:key="key_iconsize"
+            android:persistent="false"
+            android:summary="%s"
+            android:title="@string/pref_title_iconsize"
+            app:sliderMin="0.5"
+            app:sliderMax="1.5"
+            app:sliderStepSize="0.125"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

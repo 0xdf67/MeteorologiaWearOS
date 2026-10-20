@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Feature Settings -->
+    <string name="pref_title_features">"Vlastnosti"</string>
+    <string name="pref_summary_features">"Vybrať z možností (zapnúť/vypnúť)"</string>
+    <string name="pref_title_feature_bgimage">"Obrázok pozadia"</string>
+    <string name="pref_title_feature_forecast">"Predpoveď"</string>
+    <string name="pref_title_feature_hrforecast">"Hodinová predpoveď"</string>
+    <string name="pref_title_feature_details">"Podrobnosti počasia"</string>
+    <string name="pref_title_feature_uv">"UV"</string>
+    <string name="pref_title_feature_beaufort">"Beaufort"</string>
+    <string name="pref_title_feature_aqindex">"Index kvality ovzdušia"</string>
+    <string name="pref_title_feature_moonphase">"Fáza mesiaca"</string>
+    <string name="pref_title_feature_sunphase">"Fáza slnka"</string>
+    <string name="pref_title_feature_radar">"MeteoRadar"</string>
+    <string name="pref_title_feature_locpanelimg">"Obrázok panelu polohy"</string>
+
+    <!-- Widget -->
+    <string name="widget_configure_prompt">"Nastavenia miniaplikácie"</string>
+    <string name="title_activity_widget_config">"Predvoľby miniaplikácie"</string>
+    <string name="pref_title_bgcolor">"Pozadie"</string>
+    <string name="label_color_transparent">"Priehľadná"</string>
+    <string name="pref_title_bgstyle">"Štýl pozadia"</string>
+    <string name="label_style_fullbg">"Celé pozadie"</string>
+    <string name="label_style_panda">"Predvolené"</string>
+
+    <!-- Can be shortened to 'Color' -->
+    <string name="label_style_pendingcolor">"Farba počasia"</string>
+    <string name="label_style_light">"Svetlá"</string>
+    <string name="label_style_dark">"Tmavá"</string>
+    <string name="locname_pref_title">"Meno lokality"</string>
+    <string name="locname_pref_summary">"Skryť meno lokality v miniaplikácii"</string>
+    <string name="settingsbtn_pref_title">"Tlačidlo nastavení"</string>
+    <string name="settingsbtn_pref_summary">"Skryť tlačidlo nastavení v miniaplikácii"</string>
+    <string name="clock_pref_title">"Hodiny"</string>
+    <string name="calendar_pref_title">"Kalendár"</string>
+    <string name="pref_title_fcastoption">"Predpoveď"</string>
+    <string name="label_fcast_full">"Denná a hodinová predpoveď (ak je dostupná)"</string>
+    <string name="label_fcast_daily">"Denná predpoveď"</string>
+    <string name="label_fcast_hourly">"Hodinová predpoveď"</string>
+    <string name="pref_category_timeanddate">"Čas a dátum"</string>
+    <string name="pref_title_timezone">"Časová zóna"</string>
+    <string name="pref_timezone_summaryoff">"Použiť systémovú časovú zónu pre čas a dátum"</string>
+    <string name="pref_timezone_summaryon">"Použiť čas a dátum lokality"</string>
+    <string name="pref_location">"Lokalita"</string>
+    <string name="pref_item_gpslocation">"Aktuálna poloha GPS"</string>
+    <string name="prompt_setup_app_first">"Najprv prosím nastavte aplikáciu"</string>
+
+    <!-- LineView -->
+    <string name="label_series">"Rad"</string>
+
+    <!-- In-App Updates -->
+    <string name="not_channel_update_title">"Aktualizácie aplikácie "</string>
+    <string name="prompt_update_title">"Aktualizovať SimpleWeather"</string>
+    <string name="prompt_update_available">"Je dostupná aktualizácia. Ťuknutím inštalujte"</string>
+
+    <!-- Support -->
+    <string name="pref_category_support">"Podpora"</string>
+
+    <!-- Feedback -->
+    <string name="pref_title_feedback">"Spätná väzba"</string>
+    <string name="pref_summary_feedback">"Nahlásiť chyby alebo návrhy na vylepšenie aplikácie"</string>
+
+    <!-- Rate / Review -->
+    <string name="pref_title_rateandreview">"Hodnotenie a recenzia"</string>
+    <string name="pref_summary_rateandreview">"Páči sa Vám aplikácia? Pomôžte podpore poskytnutím recenzie."</string>
+
+    <!-- Translate -->
+    <string name="pref_title_translate">"Preklad"</string>
+    <string name="pref_summary_translate">"Pomôcť s prekladom aplikácie"</string>
+
+    <!-- Custom Color -->
+    <string name="label_color_custom">"Vlastné"</string>
+    <string name="pref_title_bgcolorcode">"Farba pozadia"</string>
+    <string name="pref_title_txtcolorcode">"Farba textu"</string>
+
+    <!-- SplitInstall Prompts -->
+    <string name="splitlang_start_install">"Spúšťa sa inštalácia pre jazykový balík ..."</string>
+    <string name="splitlang_installing">"Inštaluje sa jazykový balík ..."</string>
+    <string name="splitlang_downloading">"Sťahuje sa jazykový balík ..."</string>
+    <string name="splitlang_failure">"Nepodarilo sa nainštalovať jazykový balík"</string>
+    <string name="pref_title_feature_charts">"Grafy"</string>
+
+    <!-- Widget Service -->
+    <string name="message_widgetservice_running">"Služba aktualizácií widgetov je spustená"</string>
+    <string name="pref_title_foreground_service">"Služba aktualizácie widgetov"</string>
+    <string name="pref_summary_foreground_service">"Povoľte službe aktualizáciu widgetov a upozornení na počasie"</string>
+    <string name="pref_title_ignore_batt_opts">"Ignorujte optimalizáciu batérie"</string>
+    <string name="pref_summary_ignore_batt_opts">"Ak sa widgety a upozornenia neaktualizujú, zakážte obmedzenie služby na pozadí"</string>
+    <string name="pref_title_tap2switch">"Kliknite na akciu"</string>
+    <string name="pref_tap2switch_summaryOn">"Kliknutím prepnete predpoveď"</string>
+    <string name="pref_tap2switch_summaryOff">"Otvoriť aplikáciu"</string>
+
+    <!-- Daily Notification -->
+    <string name="not_channel_name_dailynotification">"Denné upozornenie"</string>
+    <string name="pref_title_time">"Čas"</string>
+    <string name="pref_summary_off">"Vypnuté"</string>
+    <string name="pref_summary_on">"Zapnuté"</string>
+
+    <!-- Precipitation Notification -->
+    <string name="not_channel_name_precipnotification">"Oznámenie o zrážkach"</string>
+
+    <!-- Example: 80% chance of rain in 2 hours
+(%1$d) -> Percentage | (%2$s) -> Time in minutes or hours -->
+    <string name="precipitation_text_format">"%1$d%% pravdepodobnosť dažďa do %2$s"</string>
+    <string name="precipitation_nexthour_text_format">"%1$d%% pravdepodobnosť dažďa v nasledujúcej hodine"</string>
+
+    <!-- Weather Summary or Weather Overview -->
+    <string name="pref_title_feature_summary">"Prehľad počasia"</string>
+    <string name="prompt_max_locations_allowed">"Maximálne päť povolených miest"</string>
+    <string name="pref_title_widgetgraphtype">"Typ predpovede"</string>
+
+    <!-- Widget Labels -->
+    <string name="label_widget_weather_1x1">"Počasie (1x1)"</string>
+    <string name="label_widget_weather_clock_2x2">"Počasie a hodiny (2x2)"</string>
+    <string name="label_widget_weather_4x1">"Počasie (4x1)"</string>
+    <string name="label_widget_weather_clock_4x2">"Počasie a hodiny (4x2)"</string>
+    <string name="label_widget_weather_date_4x1">"Počasie a dátum (4x1)"</string>
+    <string name="label_widget_weather_2x2">"Počasie (2x2)"</string>
+    <string name="label_widget_weather_4x2">"Počasie (4x2)"</string>
+    <string name="label_widget_weather_4x4">"Počasie (4x4)"</string>
+    <string name="label_widget_weather_clock_4x3">"Počasie a hodiny (4x3)"</string>
+    <string name="label_widget_weather_3x1">"Počasie (3x1)"</string>
+    <string name="label_widget_weather_forecast_4x2">"Predpoveď počasia (4x2)"</string>
+    <string name="widget_loading_prompt">"Načítava…"</string>
+    <string name="refreshbtn_pref_title">"Tlačidlo Obnoviť"</string>
+    <string name="refreshbtn_pref_summary">"Skryť tlačidlo obnovenia z widgetu"</string>
+    <string name="pref_category_customsize">"Veľkosť ikony a písma"</string>
+    <string name="pref_title_textsize">"Veľkosť písma"</string>
+    <string name="pref_title_iconsize">"Veľkosť ikony"</string>
+    <string name="precipitation_minutely_starting_text_format">"Dážď začne približne za %1$s"</string>
+    <string name="precipitation_minutely_stopping_text_format">"Dážď ustane približne za %1$s"</string>
+
+    <!-- Minimum Alert Severity -->
+    <string name="pref_title_minalertseverity">"Minimálna závažnosť upozornenia"</string>
+    <string name="alertsev_all">"Žiadne (Zobraziť všetky upozornenia)"</string>
+    <string name="alertsev_moderate">"Mierne"</string>
+    <string name="alertsev_severe">"Závažné"</string>
+    <string name="alertsev_extreme">"Extrémne"</string>
+    <string name="pref_title_txtshadow">"Textový tieň"</string>
+    <string name="pref_summary_txtshadow">"Pridajte do textu tieňovú vrstvu"</string>
+    <string name="precipitation_likely_text_format">"Je pravdepodobné, že okolo %1$s bude pršať (%2$d%% šanca)"</string>
+    <string name="precipitation_likely_minutely_starting_text_format">"Očakáva sa, že dážď začne okolo %1$s"</string>
+    <string name="precipitation_likely_minutely_stopping_text_format">"Očakáva sa, že dážď prestane okolo %1$s"</string>
+</resources>

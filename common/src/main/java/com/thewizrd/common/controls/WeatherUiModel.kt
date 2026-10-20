@@ -1,0 +1,770 @@
+package com.thewizrd.common.controls
+
+import android.annotation.SuppressLint
+import android.text.format.DateFormat
+import androidx.annotation.RestrictTo
+import androidx.core.util.ObjectsCompat
+import com.thewizrd.common.weatherdata.NoopWeatherProvider
+import com.thewizrd.shared_resources.DateTimeConstants
+import com.thewizrd.shared_resources.R
+import com.thewizrd.shared_resources.appLib
+import com.thewizrd.shared_resources.designer.isInEditMode
+import com.thewizrd.shared_resources.di.settingsManager
+import com.thewizrd.shared_resources.icons.WeatherIcons
+import com.thewizrd.shared_resources.sharedDeps
+import com.thewizrd.shared_resources.utils.ConversionMethods
+import com.thewizrd.shared_resources.utils.Coordinate
+import com.thewizrd.shared_resources.utils.DateTimeUtils
+import com.thewizrd.shared_resources.utils.LocaleUtils
+import com.thewizrd.shared_resources.utils.Units
+import com.thewizrd.shared_resources.utils.Units.TemperatureUnits
+import com.thewizrd.shared_resources.utils.getLastBuildDate
+import com.thewizrd.shared_resources.utils.getWindDirection
+import com.thewizrd.shared_resources.weatherdata.WeatherAPI
+import com.thewizrd.shared_resources.weatherdata.WeatherProvider
+import com.thewizrd.shared_resources.weatherdata.model.Weather
+import com.thewizrd.weather_api.weatherModule
+import java.text.DecimalFormat
+import kotlin.math.roundToInt
+
+class WeatherUiModel() {
+    @set:RestrictTo(RestrictTo.Scope.LIBRARY, RestrictTo.Scope.TESTS)
+    var location: String? = null
+
+    var updateDate: String? = null
+        private set
+
+    // Current Condition
+    var curTemp: String? = null
+        private set
+
+    var curCondition: String? = null
+        private set
+
+    var weatherIcon: String = WeatherIcons.NA
+        private set
+
+    var hiTemp: String? = null
+        private set
+
+    var loTemp: String? = null
+        private set
+
+    var isShowHiLo = false
+        private set
+
+    var weatherSummary: String? = null
+        private set
+
+    // Weather Details
+    var sunPhase: SunPhaseViewModel? = null
+        private set
+
+    var uvIndex: UVIndexViewModel? = null
+        private set
+
+    var beaufort: BeaufortViewModel? = null
+        private set
+
+    var moonPhase: MoonPhaseViewModel? = null
+        private set
+
+    var airQuality: AirQualityViewModel? = null
+        private set
+
+    var pollen: PollenViewModel? = null
+        private set
+
+    // Radar
+    val locationCoord = Coordinate(0.0, 0.0)
+
+    var weatherCredit: String? = null
+        private set
+
+    var weatherSource: String? = null
+        private set
+
+    var weatherLocale: String? = null
+        private set
+
+    val weatherDetailsMap: MutableMap<WeatherDetailsType, DetailItemViewModel> =
+        LinkedHashMap(WeatherDetailsType.entries.size)
+
+    val query: String?
+        get() = weatherData?.query
+
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY)
+    var weatherData: Weather? = null
+        private set
+
+    @get:TemperatureUnits
+    var tempUnit: String? = null
+        private set
+
+    private var unitCode: String? = null
+    private var localeCode: String? = null
+    var iconProvider: String? = null
+        private set
+
+    private val context
+        get() = sharedDeps.context
+    private val isPhone
+        get() = appLib.isPhone
+
+    constructor(weather: Weather?) : this() {
+        updateView(weather)
+    }
+
+    @SuppressLint("RestrictedApi")
+    fun updateView(weather: Weather?) {
+        if (weather != null && weather.isValid) {
+            if (weatherData != weather) {
+                weatherData = weather
+
+                // Location
+                location = weather.location?.name
+
+                // Summary
+                weatherSummary = weather.condition?.summary
+
+                // Additional Details
+                if (weather.location?.latitude != null && weather.location?.longitude != null) {
+                    locationCoord.setCoordinate(
+                        weather.location!!.latitude.toDouble(),
+                        weather.location!!.longitude.toDouble()
+                    )
+                } else {
+                    locationCoord.setCoordinate(0.0, 0.0)
+                }
+
+                // Additional Details
+                weatherSource = weather.source
+
+                // Language
+                weatherLocale = weather.locale
+
+                // Refresh locale/unit dependent values
+                refreshView()
+            } else if (unitCode != settingsManager.getUnitString() ||
+                localeCode != LocaleUtils.getLocaleCode() ||
+                iconProvider != settingsManager.getIconsProvider()
+            ) {
+                refreshView()
+            }
+        }
+    }
+
+    private fun refreshView() {
+        val provider: WeatherProvider = if (appLib.isInEditMode()) {
+            NoopWeatherProvider()
+        } else {
+            weatherModule.weatherManager.getWeatherProvider(weatherData!!.source)
+        }
+
+        val isFahrenheit = Units.FAHRENHEIT == settingsManager.getTemperatureUnit()
+
+        val df = DecimalFormat.getInstance(LocaleUtils.getLocale()) as DecimalFormat
+        df.applyPattern("0.##")
+
+        val dfShort = DecimalFormat.getInstance(LocaleUtils.getLocale()) as DecimalFormat
+        dfShort.applyPattern("0.#")
+
+        tempUnit = settingsManager.getTemperatureUnit()
+        unitCode = settingsManager.getUnitString()
+
+        localeCode = LocaleUtils.getLocaleCode()
+        iconProvider = settingsManager.getIconsProvider()
+
+        // Date Updated
+        updateDate = getLastBuildDate(weatherData!!)
+
+        // Update current condition
+        curTemp = if (weatherData?.condition?.tempF != null &&
+            weatherData!!.condition!!.tempF != weatherData!!.condition!!.tempC
+        ) {
+            val temp =
+                if (isFahrenheit) Math.round(weatherData!!.condition!!.tempF) else Math.round(
+                    weatherData!!.condition!!.tempC
+            )
+            String.format(LocaleUtils.getLocale(), "%d°%s", temp, tempUnit)
+        } else {
+            WeatherIcons.PLACEHOLDER
+        }
+
+        val weatherCondition =
+            if (provider.supportsWeatherLocale()) weatherData!!.condition!!.weather else provider.getWeatherCondition(
+                weatherData!!.condition!!.icon
+            )
+        curCondition =
+            if (weatherCondition.isNullOrBlank()) WeatherIcons.EM_DASH else weatherCondition
+
+        weatherIcon = weatherData!!.condition!!.icon
+
+        run {
+            var shouldHideHi = false
+            var shouldHideLo = false
+
+            val newHiTemp: String
+            if (weatherData?.condition?.highF != null &&
+                weatherData!!.condition!!.highF != weatherData!!.condition!!.highC
+            ) {
+                newHiTemp =
+                    (if (isFahrenheit) Math.round(weatherData!!.condition!!.highF) else Math.round(
+                        weatherData!!.condition!!.highC
+                    )).toString() + "°"
+            } else {
+                newHiTemp = WeatherIcons.PLACEHOLDER
+                shouldHideHi = true
+            }
+            hiTemp = newHiTemp
+
+            val newLoTemp: String
+            if (weatherData?.condition?.lowF != null &&
+                weatherData!!.condition!!.lowF != weatherData!!.condition!!.lowC
+            ) {
+                newLoTemp =
+                    (if (isFahrenheit) Math.round(weatherData!!.condition!!.lowF) else Math.round(
+                        weatherData!!.condition!!.lowC
+                    )).toString() + "°"
+            } else {
+                newLoTemp = WeatherIcons.PLACEHOLDER
+                shouldHideLo = true
+            }
+            loTemp = newLoTemp
+
+            this.isShowHiLo = (!shouldHideHi || !shouldHideLo) && hiTemp != loTemp
+        }
+
+        // WeatherDetails
+        weatherDetailsMap.clear()
+        // Precipitation
+        if (weatherData?.precipitation != null) {
+            if (weatherData?.precipitation?.pop != null && weatherData!!.precipitation!!.pop >= 0) {
+                weatherDetailsMap[WeatherDetailsType.POPCHANCE] =
+                    DetailItemViewModel(
+                        WeatherDetailsType.POPCHANCE,
+                        weatherData!!.precipitation!!.pop.toString() + "%"
+                    )
+            }
+            if (weatherData?.precipitation?.qpfRainIn != null && weatherData!!.precipitation!!.qpfRainIn >= 0) {
+                val unit = settingsManager.getPrecipitationUnit()
+                val precipValue: Float
+                val precipUnit: String
+
+                when (unit) {
+                    Units.INCHES -> {
+                        precipValue = weatherData!!.precipitation!!.qpfRainIn
+                        precipUnit = context.getString(R.string.unit_in)
+                    }
+                    Units.MILLIMETERS -> {
+                        precipValue = weatherData!!.precipitation!!.qpfRainMm
+                        precipUnit = context.getString(R.string.unit_mm)
+                    }
+                    else -> {
+                        precipValue = weatherData!!.precipitation!!.qpfRainIn
+                        precipUnit = context.getString(R.string.unit_in)
+                    }
+                }
+                weatherDetailsMap[WeatherDetailsType.POPRAIN] = DetailItemViewModel(
+                    WeatherDetailsType.POPRAIN,
+                    String.format(
+                        LocaleUtils.getLocale(),
+                        "%s %s",
+                        df.format(precipValue.toDouble()),
+                        precipUnit
+                    ),
+                    String.format(
+                        LocaleUtils.getLocale(),
+                        "%s %s",
+                        dfShort.format(precipValue.toDouble()),
+                        precipUnit
+                    )
+                )
+            }
+            if (weatherData?.precipitation?.qpfSnowIn != null && weatherData!!.precipitation!!.qpfSnowIn >= 0) {
+                val unit = settingsManager.getPrecipitationUnit()
+                val precipValue: Float
+                val precipUnit: String
+
+                when (unit) {
+                    Units.INCHES -> {
+                        precipValue = weatherData!!.precipitation!!.qpfSnowIn
+                        precipUnit = context.getString(R.string.unit_in)
+                    }
+                    Units.MILLIMETERS -> {
+                        precipValue = weatherData!!.precipitation!!.qpfSnowCm * 10
+                        precipUnit = context.getString(R.string.unit_mm)
+                    }
+                    else -> {
+                        precipValue = weatherData!!.precipitation!!.qpfSnowIn
+                        precipUnit = context.getString(R.string.unit_in)
+                    }
+                }
+                weatherDetailsMap[WeatherDetailsType.POPSNOW] = DetailItemViewModel(
+                    WeatherDetailsType.POPSNOW,
+                    String.format(
+                        LocaleUtils.getLocale(),
+                        "%s %s",
+                        df.format(precipValue.toDouble()),
+                        precipUnit
+                    ),
+                    String.format(
+                        LocaleUtils.getLocale(),
+                        "%s %s",
+                        dfShort.format(precipValue.toDouble()),
+                        precipUnit
+                    )
+                )
+            }
+            if (weatherData?.precipitation?.cloudiness != null && weatherData!!.precipitation!!.cloudiness >= 0) {
+                weatherDetailsMap[WeatherDetailsType.POPCLOUDINESS] = DetailItemViewModel(
+                    WeatherDetailsType.POPCLOUDINESS,
+                    weatherData!!.precipitation!!.cloudiness.toString() + "%"
+                )
+            }
+        }
+
+        // Atmosphere
+        if (weatherData?.atmosphere?.pressureMb != null) {
+            val unit = settingsManager.getPressureUnit()
+            val pressureVal: Float
+            val pressureUnit: String
+            val pressureUnitShort: String
+
+            when (unit) {
+                Units.INHG -> {
+                    pressureVal = weatherData!!.atmosphere!!.pressureIn
+                    pressureUnit = context.getString(R.string.unit_inHg)
+                    pressureUnitShort = context.getString(R.string.unit_in)
+                }
+
+                Units.MILLIBAR -> {
+                    pressureVal = weatherData!!.atmosphere!!.pressureMb
+                    pressureUnit = context.getString(R.string.unit_mBar).also {
+                        pressureUnitShort = it
+                    }
+                }
+
+                Units.MMHG -> {
+                    pressureVal =
+                        ConversionMethods.inHgToMmHg(weatherData!!.atmosphere!!.pressureIn)
+                    pressureUnit = context.getString(R.string.unit_mmHg)
+                    pressureUnitShort = context.getString(R.string.unit_mm)
+                }
+
+                else -> {
+                    pressureVal = weatherData!!.atmosphere!!.pressureIn
+                    pressureUnit = context.getString(R.string.unit_inHg)
+                    pressureUnitShort = context.getString(R.string.unit_in)
+                }
+            }
+
+            weatherDetailsMap[WeatherDetailsType.PRESSURE] = DetailItemViewModel(
+                WeatherDetailsType.PRESSURE,
+                String.format(
+                    LocaleUtils.getLocale(),
+                    "%s %s",
+                    df.format(pressureVal.toDouble()),
+                    pressureUnit
+                ),
+                String.format(
+                    LocaleUtils.getLocale(),
+                    "%s %s",
+                    dfShort.format(pressureVal.toDouble()),
+                    pressureUnitShort
+                )
+            )
+        }
+
+        if (weatherData?.atmosphere?.humidity != null) {
+            weatherDetailsMap[WeatherDetailsType.HUMIDITY] = DetailItemViewModel(
+                WeatherDetailsType.HUMIDITY,
+                String.format(
+                    LocaleUtils.getLocale(),
+                    "%d%%",
+                    weatherData!!.atmosphere!!.humidity
+                )
+            )
+        }
+
+        if (weatherData?.atmosphere?.dewpointF != null && !ObjectsCompat.equals(
+                weatherData!!.atmosphere!!.dewpointF,
+                weatherData!!.atmosphere!!.dewpointC
+            )
+        ) {
+            weatherDetailsMap[WeatherDetailsType.DEWPOINT] = DetailItemViewModel(
+                WeatherDetailsType.DEWPOINT,
+                String.format(
+                    LocaleUtils.getLocale(), "%d°",
+                    if (isFahrenheit) {
+                        weatherData!!.atmosphere!!.dewpointF.roundToInt()
+                    } else {
+                        weatherData!!.atmosphere!!.dewpointC.roundToInt()
+                    }
+                )
+            )
+        }
+
+        if (weatherData?.atmosphere?.visibilityMi != null && weatherData!!.atmosphere!!.visibilityMi >= 0) {
+            val unit = settingsManager.getDistanceUnit()
+            val visibilityVal: Int
+            val visibilityUnit: String
+
+            when (unit) {
+                Units.MILES -> {
+                    visibilityVal = weatherData!!.atmosphere!!.visibilityMi.roundToInt()
+                    visibilityUnit = context.getString(R.string.unit_miles)
+                }
+                Units.KILOMETERS -> {
+                    visibilityVal = weatherData!!.atmosphere!!.visibilityKm.roundToInt()
+                    visibilityUnit = context.getString(R.string.unit_kilometers)
+                }
+                else -> {
+                    visibilityVal = weatherData!!.atmosphere!!.visibilityMi.roundToInt()
+                    visibilityUnit = context.getString(R.string.unit_miles)
+                }
+            }
+
+            weatherDetailsMap[WeatherDetailsType.VISIBILITY] = DetailItemViewModel(
+                WeatherDetailsType.VISIBILITY,
+                String.format(LocaleUtils.getLocale(), "%d %s", visibilityVal, visibilityUnit)
+            )
+        }
+
+        if (weatherData?.condition?.uv?.index != null) {
+            if (isPhone) {
+                uvIndex = UVIndexViewModel(weatherData!!.condition!!.uv)
+            } else {
+                weatherDetailsMap[WeatherDetailsType.UV] =
+                    DetailItemViewModel(weatherData!!.condition!!.uv)
+            }
+        } else {
+            uvIndex = null
+        }
+
+        // Additional Details
+        if (weatherData?.condition?.airQuality?.index != null) {
+            if (isPhone) {
+                airQuality = AirQualityViewModel(weatherData!!.condition!!.airQuality)
+            } else {
+                weatherDetailsMap[WeatherDetailsType.AIRQUALITY] =
+                    DetailItemViewModel(weatherData!!.condition!!.airQuality)
+            }
+        } else {
+            airQuality = null
+        }
+
+        if (weatherData?.condition?.feelslikeF != null &&
+            weatherData!!.condition!!.feelslikeF != weatherData!!.condition!!.feelslikeC
+        ) {
+            val value =
+                if (isFahrenheit) weatherData!!.condition!!.feelslikeF.roundToInt() else weatherData!!.condition!!.feelslikeC.roundToInt()
+
+            weatherDetailsMap[WeatherDetailsType.FEELSLIKE] = DetailItemViewModel(
+                WeatherDetailsType.FEELSLIKE,
+                String.format(LocaleUtils.getLocale(), "%d°", value)
+            )
+        }
+
+        // Wind
+        if (weatherData?.condition?.windMph != null &&
+            weatherData!!.condition!!.windMph != weatherData!!.condition!!.windKph
+        ) {
+            val unit = settingsManager.getSpeedUnit()
+            val speedVal: Int
+            val speedUnit: String
+            val speedUnitShort: String
+
+            when (unit) {
+                Units.MILES_PER_HOUR -> {
+                    speedVal = weatherData!!.condition!!.windMph.roundToInt()
+                    speedUnit = context.getString(R.string.unit_mph).also {
+                        speedUnitShort = it
+                    }
+                }
+                Units.KILOMETERS_PER_HOUR -> {
+                    speedVal = weatherData!!.condition!!.windKph.roundToInt()
+                    speedUnit = context.getString(R.string.unit_kph).also {
+                        speedUnitShort = it
+                    }
+                }
+                Units.METERS_PER_SECOND -> {
+                    speedVal =
+                        ConversionMethods.kphToMsec(weatherData!!.condition!!.windKph).roundToInt()
+                    speedUnit = context.getString(R.string.unit_msec).also {
+                        speedUnitShort = it
+                    }
+                }
+                Units.KNOTS -> {
+                    speedVal =
+                        ConversionMethods.mphToKts(weatherData!!.condition!!.windMph).roundToInt()
+                    speedUnit = context.getString(R.string.unit_knots)
+                    speedUnitShort = "kn"
+                }
+                else -> {
+                    speedVal = weatherData!!.condition!!.windMph.roundToInt()
+                    speedUnit = context.getString(R.string.unit_mph).also {
+                        speedUnitShort = it
+                    }
+                }
+            }
+
+            if (weatherData!!.condition!!.windDegrees != null) {
+                weatherDetailsMap[WeatherDetailsType.WINDSPEED] = DetailItemViewModel(
+                    WeatherDetailsType.WINDSPEED,
+                    String.format(
+                        LocaleUtils.getLocale(),
+                        "%d %s, %s",
+                        speedVal,
+                        speedUnit,
+                        getWindDirection(weatherData!!.condition!!.windDegrees.toFloat())
+                    ),
+                    String.format(
+                        LocaleUtils.getLocale(),
+                        "%d %s",
+                        speedVal,
+                        speedUnitShort
+                    ),
+                    weatherData!!.condition!!.windDegrees + 180
+                )
+            } else {
+                weatherDetailsMap[WeatherDetailsType.WINDSPEED] = DetailItemViewModel(
+                    WeatherDetailsType.WINDSPEED,
+                    String.format(LocaleUtils.getLocale(), "%d %s", speedVal, speedUnit),
+                    String.format(LocaleUtils.getLocale(), "%d %s", speedVal, speedUnitShort),
+                    180
+                )
+            }
+        }
+
+        if (weatherData?.condition?.windGustMph != null && weatherData!!.condition!!.windGustKph != null &&
+            weatherData!!.condition!!.windGustMph != weatherData!!.condition!!.windGustKph
+        ) {
+            val unit = settingsManager.getSpeedUnit()
+            val speedVal: Int
+            val speedUnit: String
+            val speedUnitShort: String
+
+            when (unit) {
+                Units.MILES_PER_HOUR -> {
+                    speedVal = weatherData!!.condition!!.windGustMph.roundToInt()
+                    speedUnit = context.getString(R.string.unit_mph).also {
+                        speedUnitShort = it
+                    }
+                }
+                Units.KILOMETERS_PER_HOUR -> {
+                    speedVal = weatherData!!.condition!!.windGustKph.roundToInt()
+                    speedUnit = context.getString(R.string.unit_kph).also {
+                        speedUnitShort = it
+                    }
+                }
+                Units.METERS_PER_SECOND -> {
+                    speedVal =
+                        ConversionMethods.kphToMsec(weatherData!!.condition!!.windGustKph)
+                            .roundToInt()
+                    speedUnit = context.getString(R.string.unit_msec).also {
+                        speedUnitShort = it
+                    }
+                }
+
+                Units.KNOTS -> {
+                    speedVal =
+                        ConversionMethods.mphToKts(weatherData!!.condition!!.windMph).roundToInt()
+                    speedUnit = context.getString(R.string.unit_knots)
+                    speedUnitShort = "kn"
+                }
+                else -> {
+                    speedVal = weatherData!!.condition!!.windGustMph.roundToInt()
+                    speedUnit = context.getString(R.string.unit_mph).also {
+                        speedUnitShort = it
+                    }
+                }
+            }
+
+            weatherDetailsMap[WeatherDetailsType.WINDGUST] = DetailItemViewModel(
+                WeatherDetailsType.WINDGUST,
+                String.format(LocaleUtils.getLocale(), "%d %s", speedVal, speedUnit),
+                String.format(LocaleUtils.getLocale(), "%d %s", speedVal, speedUnitShort)
+            )
+        }
+
+        if (weatherData!!.condition!!.beaufort != null) {
+            if (isPhone) {
+                beaufort = BeaufortViewModel(weatherData!!.condition!!.beaufort)
+            } else {
+                weatherDetailsMap[WeatherDetailsType.BEAUFORT] =
+                    DetailItemViewModel(weatherData!!.condition!!.beaufort.scale)
+            }
+        } else {
+            beaufort = null
+        }
+
+        if (weatherData!!.condition?.pollen != null) {
+            val pollenVM = PollenViewModel(weatherData!!.condition!!.pollen)
+            if (isPhone) {
+                pollen = pollenVM
+            } else {
+                weatherDetailsMap[WeatherDetailsType.TREEPOLLEN] = DetailItemViewModel(
+                    WeatherDetailsType.TREEPOLLEN,
+                    pollenVM.treePollenDesc.toString(),
+                    pollenVM.treePollenShortDesc.toString(),
+                    0
+                )
+                weatherDetailsMap[WeatherDetailsType.GRASSPOLLEN] = DetailItemViewModel(
+                    WeatherDetailsType.GRASSPOLLEN,
+                    pollenVM.grassPollenDesc.toString(),
+                    pollenVM.grassPollenShortDesc.toString(),
+                    0
+                )
+                weatherDetailsMap[WeatherDetailsType.RAGWEEDPOLLEN] = DetailItemViewModel(
+                    WeatherDetailsType.RAGWEEDPOLLEN,
+                    pollenVM.ragweedPollenDesc.toString(),
+                    pollenVM.ragweedPollenShortDesc.toString(),
+                    0
+                )
+            }
+        } else {
+            pollen = null
+        }
+
+        // Astronomy
+        if (weatherData?.astronomy != null) {
+            val astroTimeFormatter = if (DateFormat.is24HourFormat(sharedDeps.context)) {
+                DateTimeUtils.ofPatternForInvariantLocale(DateTimeConstants.CLOCK_FORMAT_24HR)
+            } else {
+                DateTimeUtils.ofPatternForInvariantLocale(DateTimeConstants.CLOCK_FORMAT_12HR_AMPM)
+            }
+
+            val astroTimeShortFormatter = if (DateFormat.is24HourFormat(sharedDeps.context)) {
+                DateTimeUtils.ofPatternForInvariantLocale(DateTimeConstants.CLOCK_FORMAT_24HR)
+            } else {
+                DateTimeUtils.ofPatternForInvariantLocale(DateTimeConstants.CLOCK_FORMAT_12HR_AMPM_SHORT)
+            }
+
+            if (weatherData?.astronomy?.sunrise != null && weatherData?.astronomy?.sunset != null) {
+                sunPhase =
+                    SunPhaseViewModel(weatherData!!.astronomy!!, weatherData!!.location!!.tzOffset)
+            }
+
+            weatherData?.astronomy?.sunrise?.let {
+                weatherDetailsMap[WeatherDetailsType.SUNRISE] =
+                    DetailItemViewModel(
+                        WeatherDetailsType.SUNRISE,
+                        astroTimeFormatter.format(it),
+                        astroTimeShortFormatter.format(it)
+                    )
+            }
+            weatherData?.astronomy?.sunset?.let {
+                weatherDetailsMap[WeatherDetailsType.SUNSET] =
+                    DetailItemViewModel(
+                        WeatherDetailsType.SUNSET,
+                        astroTimeFormatter.format(it),
+                        astroTimeShortFormatter.format(it)
+                    )
+            }
+
+            if (weatherData?.astronomy?.moonrise != null && weatherData?.astronomy?.moonset != null) {
+                if (weatherData!!.astronomy!!.moonrise.isAfter(DateTimeUtils.LOCALDATETIME_MIN)) {
+                    weatherDetailsMap[WeatherDetailsType.MOONRISE] = DetailItemViewModel(
+                        WeatherDetailsType.MOONRISE,
+                        weatherData!!.astronomy!!.moonrise.format(astroTimeFormatter),
+                        weatherData!!.astronomy!!.moonrise.format(astroTimeShortFormatter)
+                    )
+                }
+                if (weatherData!!.astronomy!!.moonset.isAfter(DateTimeUtils.LOCALDATETIME_MIN)) {
+                    weatherDetailsMap[WeatherDetailsType.MOONSET] = DetailItemViewModel(
+                        WeatherDetailsType.MOONSET,
+                        weatherData!!.astronomy!!.moonset.format(astroTimeFormatter),
+                        weatherData!!.astronomy!!.moonset.format(astroTimeShortFormatter)
+                    )
+                }
+            }
+
+            if (weatherData?.astronomy?.moonPhase != null) {
+                moonPhase = MoonPhaseViewModel(weatherData!!.astronomy!!)
+
+                if (!isPhone) {
+                    weatherDetailsMap[WeatherDetailsType.MOONPHASE] =
+                        DetailItemViewModel(weatherData!!.astronomy!!.moonPhase.phase)
+                }
+            }
+        } else {
+            sunPhase = null
+            moonPhase = null
+        }
+
+        val entry = WeatherAPI.APIs.find { wapi -> weatherSource == wapi.value }
+        weatherCredit = String.format(
+            "%s %s",
+            context.getString(R.string.credit_prefix),
+            entry?.toString() ?: WeatherIcons.EM_DASH
+        )
+    }
+
+    val isValid: Boolean
+        get() = weatherData?.isValid == true
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as WeatherUiModel
+
+        if (location != other.location) return false
+        if (updateDate != other.updateDate) return false
+        if (curTemp != other.curTemp) return false
+        if (curCondition != other.curCondition) return false
+        if (weatherIcon != other.weatherIcon) return false
+        if (hiTemp != other.hiTemp) return false
+        if (loTemp != other.loTemp) return false
+        if (isShowHiLo != other.isShowHiLo) return false
+        if (weatherSummary != other.weatherSummary) return false
+        if (sunPhase != other.sunPhase) return false
+        if (uvIndex != other.uvIndex) return false
+        if (beaufort != other.beaufort) return false
+        if (moonPhase != other.moonPhase) return false
+        if (airQuality != other.airQuality) return false
+        if (pollen != other.pollen) return false
+        if (locationCoord != other.locationCoord) return false
+        if (weatherCredit != other.weatherCredit) return false
+        if (weatherSource != other.weatherSource) return false
+        if (weatherLocale != other.weatherLocale) return false
+        if (weatherDetailsMap != other.weatherDetailsMap) return false
+        if (unitCode != other.unitCode) return false
+        if (localeCode != other.localeCode) return false
+        if (iconProvider != other.iconProvider) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = location?.hashCode() ?: 0
+        result = 31 * result + (updateDate?.hashCode() ?: 0)
+        result = 31 * result + (curTemp?.hashCode() ?: 0)
+        result = 31 * result + (curCondition?.hashCode() ?: 0)
+        result = 31 * result + weatherIcon.hashCode()
+        result = 31 * result + (hiTemp?.hashCode() ?: 0)
+        result = 31 * result + (loTemp?.hashCode() ?: 0)
+        result = 31 * result + isShowHiLo.hashCode()
+        result = 31 * result + (weatherSummary?.hashCode() ?: 0)
+        result = 31 * result + (sunPhase?.hashCode() ?: 0)
+        result = 31 * result + (uvIndex?.hashCode() ?: 0)
+        result = 31 * result + (beaufort?.hashCode() ?: 0)
+        result = 31 * result + (moonPhase?.hashCode() ?: 0)
+        result = 31 * result + (airQuality?.hashCode() ?: 0)
+        result = 31 * result + (pollen?.hashCode() ?: 0)
+        result = 31 * result + locationCoord.hashCode()
+        result = 31 * result + (weatherCredit?.hashCode() ?: 0)
+        result = 31 * result + (weatherSource?.hashCode() ?: 0)
+        result = 31 * result + (weatherLocale?.hashCode() ?: 0)
+        result = 31 * result + weatherDetailsMap.hashCode()
+        result = 31 * result + (unitCode?.hashCode() ?: 0)
+        result = 31 * result + (localeCode?.hashCode() ?: 0)
+        result = 31 * result + (iconProvider?.hashCode() ?: 0)
+        return result
+    }
+}
+
+fun Weather.toUiModel(): WeatherUiModel {
+    return WeatherUiModel(this)
+}

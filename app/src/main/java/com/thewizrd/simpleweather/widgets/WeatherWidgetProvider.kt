@@ -1,0 +1,160 @@
+package com.thewizrd.simpleweather.widgets
+
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.RemoteViews
+import android.widget.Toast
+import com.thewizrd.shared_resources.R as sharedRes
+import com.thewizrd.shared_resources.utils.Logger
+import com.thewizrd.simpleweather.BuildConfig
+import com.thewizrd.simpleweather.R
+import com.thewizrd.simpleweather.services.UpdaterUtils
+import com.thewizrd.simpleweather.services.WidgetWorker
+
+abstract class WeatherWidgetProvider : AppWidgetProvider() {
+    companion object {
+        private const val TAG = "WeatherWidgetProvider"
+
+        // Actions
+        const val ACTION_SHOWNEXTFORECAST = "SimpleWeather.Droid.action.SHOW_NEXT_FORECAST"
+        const val ACTION_REFRESHWIDGET = "SimpleWeather.Droid.action.REFRESH_WIDGET"
+
+        // Extras
+        const val EXTRA_WIDGET_ID = "SimpleWeather.Droid.extra.WIDGET_ID"
+        const val EXTRA_WIDGET_IDS = "SimpleWeather.Droid.extra.WIDGET_IDS"
+        const val EXTRA_WIDGET_TYPE = "SimpleWeather.Droid.extra.WIDGET_TYPE"
+        const val EXTRA_LOCATIONNAME = "SimpleWeather.Droid.extra.LOCATION_NAME"
+        const val EXTRA_LOCATIONQUERY = "SimpleWeather.Droid.extra.LOCATION_QUERY"
+    }
+
+    protected abstract val info: WidgetProviderInfo
+
+    override fun onReceive(context: Context, intent: Intent?) {
+        if (intent != null) {
+            Logger.writeLine(
+                Log.INFO,
+                "%s: WidgetType: %s; onReceive: %s",
+                TAG,
+                info.widgetType.name,
+                intent.action
+            )
+        }
+
+        when (intent?.action) {
+            ACTION_REFRESHWIDGET -> {
+                val appWidgetId =
+                    intent.getIntExtra(EXTRA_WIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+
+                Toast.makeText(
+                    context,
+                    context.getString(sharedRes.string.action_refresh) + "...",
+                    Toast.LENGTH_SHORT
+                ).show()
+                refreshWidget(context, intArrayOf(appWidgetId))
+            }
+            Intent.ACTION_BOOT_COMPLETED -> {
+                showLoadingView(context)
+            }
+            else -> {
+                if (BuildConfig.DEBUG && AppWidgetManager.ACTION_APPWIDGET_OPTIONS_CHANGED == intent?.action) {
+                    val extras = intent.extras
+                    if (extras != null && extras.containsKey(AppWidgetManager.EXTRA_APPWIDGET_ID)
+                        && extras.containsKey(AppWidgetManager.EXTRA_APPWIDGET_OPTIONS)
+                    ) {
+                        val appWidgetId = extras.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID)
+                        val widgetExtras =
+                            extras.getBundle(AppWidgetManager.EXTRA_APPWIDGET_OPTIONS)
+                        Logger.debug(TAG, "widget options changed for widgetId = $appWidgetId")
+
+                        if (widgetExtras != null) {
+                            val minWidth =
+                                widgetExtras.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+                            val maxWidth =
+                                widgetExtras.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH)
+                            val minHeight =
+                                widgetExtras.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
+                            val maxHeight =
+                                widgetExtras.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
+                            val cellWidth = WidgetUtils.getCellsForSize(minWidth)
+                            val maxCellWidth = WidgetUtils.getCellsForSize(maxWidth)
+                            val cellHeight = WidgetUtils.getCellsForSize(minHeight)
+                            val maxCellHeight = WidgetUtils.getCellsForSize(maxHeight)
+                            val hasExtraWidth = (maxCellWidth - cellWidth) > 0
+                            val hasExtraHeight = (maxCellHeight - cellHeight) > 0
+
+                            Logger.debug(TAG, "minWidth = $minWidth")
+                            Logger.debug(TAG, "maxWidth = $maxWidth")
+                            Logger.debug(TAG, "minHeight = $minHeight")
+                            Logger.debug(TAG, "maxHeight = $maxHeight")
+                            Logger.debug(TAG, "cellWidth = $cellWidth")
+                            Logger.debug(TAG, "maxCellWidth = $maxCellWidth")
+                            Logger.debug(TAG, "cellHeight = $cellHeight")
+                            Logger.debug(TAG, "maxCellHeight = $maxCellHeight")
+                            Logger.debug(TAG, "hasExtraWidth = $hasExtraWidth")
+                            Logger.debug(TAG, "hasExtraHeight = $hasExtraHeight")
+                        }
+                    }
+                }
+                super.onReceive(context, intent)
+            }
+        }
+    }
+
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
+    ) {
+        refreshWidget(context, appWidgetIds)
+    }
+
+    private fun refreshWidget(context: Context, appWidgetIds: IntArray) {
+        WidgetWorker.enqueueRefreshWidget(context, appWidgetIds, info, true)
+    }
+
+    override fun onEnabled(context: Context) {
+        // Show placeholder view
+        showLoadingView(context)
+
+        // Schedule alarms/updates
+        UpdaterUtils.startAlarm(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        // Remove alarms/updates
+        UpdaterUtils.cancelAlarm(context)
+    }
+
+    override fun onAppWidgetOptionsChanged(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle) {
+        WidgetUpdaterHelper.resizeWidget(context, info, appWidgetManager, appWidgetId, newOptions)
+    }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        super.onDeleted(context, appWidgetIds)
+        for (id in appWidgetIds) {
+            // Remove id from list
+            WidgetUtils.deleteWidget(id)
+        }
+    }
+
+    override fun onRestored(context: Context, oldWidgetIds: IntArray, newWidgetIds: IntArray) {
+        super.onRestored(context, oldWidgetIds, newWidgetIds)
+        for (i in oldWidgetIds.indices) {
+            // Remap widget ids
+            WidgetUtils.remapWidget(oldWidgetIds[i], newWidgetIds[i])
+        }
+    }
+
+    private fun showLoadingView(context: Context) {
+        AppWidgetManager.getInstance(context).run {
+            updateAppWidget(
+                info.componentName,
+                RemoteViews(context.packageName, R.layout.app_widget_loading_layout)
+            )
+        }
+    }
+}

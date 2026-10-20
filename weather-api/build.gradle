@@ -1,0 +1,136 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'com.google.devtools.ksp'
+    id 'androidx.room'
+}
+
+android {
+    compileSdk = libs.versions.compileSdkVersion.get().toInteger()
+
+    defaultConfig {
+        minSdk libs.versions.minSdkVersion.get().toInteger()
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+
+        ksp {
+            arg("room.incremental", "true")
+            arg("room.expandProjection", "true")
+            arg("room.generateKotlin", "true")
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            // Let the app module take care of this
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        // Flag to enable support for the new language APIs
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    kotlin {
+        jvmToolchain(21)
+    }
+
+    room {
+        schemaDirectory "$projectDir/schemas"
+    }
+
+    sourceSets {
+        androidTest {
+            // Adds exported schema location as test app assets.
+            assets.srcDirs += files("$projectDir/schemas".toString())
+        }
+    }
+
+    flavorDimensions 'gms'
+    productFlavors {
+        nongms {
+            dimension 'gms'
+            buildConfigField "boolean", "IS_NONGMS", "true"
+        }
+        fullgms {
+            dimension 'gms'
+            buildConfigField "boolean", "IS_NONGMS", "false"
+            externalNativeBuild {
+                ndkBuild {
+                    arguments "FULL_GMS_VERSION=true"
+                }
+            }
+        }
+    }
+
+    namespace 'com.thewizrd.weather_api'
+    lint {
+        targetSdk libs.versions.targetSdkVersion.get().toInteger()
+    }
+    testOptions {
+        targetSdk libs.versions.targetSdkVersion.get().toInteger()
+    }
+}
+
+dependencies {
+    implementation project(":shared_resources")
+    fullgmsImplementation project(":extras")
+
+    coreLibraryDesugaring libs.desugar.jdk.libs
+
+    // Unit Testing
+    androidTestImplementation libs.test.core
+
+    // AndroidJUnitRunner and JUnit Rules
+    androidTestImplementation libs.test.runner
+    androidTestImplementation libs.test.rules
+
+    // Assertions
+    androidTestImplementation libs.test.ext.junit
+    androidTestImplementation libs.test.ext.truth
+    androidTestImplementation libs.google.truth
+
+    // Kotlin
+    implementation libs.kotlinx.coroutines.core
+    implementation libs.kotlinx.coroutines.android
+
+    implementation libs.preference.ktx
+
+    implementation libs.room.runtime
+    ksp libs.room.compiler
+    implementation libs.room.ktx
+    // Room migration testing
+    androidTestImplementation libs.room.testing
+
+    implementation libs.okhttp
+    implementation libs.icu4j
+
+    // JWT
+    api libs.jjwt.api
+    runtimeOnly libs.jjwt.impl
+    runtimeOnly(libs.jjwt.orgjson) {
+        exclude group: 'org.json', module: 'json' //provided by Android natively
+    }
+
+    implementation libs.moshi.kotlin
+    ksp libs.moshi.kotlin.codegen
+    implementation libs.moshi.adapters
+    kapt libs.moshi.java.codegen
+
+    fullgmsImplementation libs.google.maps.services
+    fullgmsImplementation libs.places
+    fullgmsImplementation libs.volley // Required by Places API ^^^
+    fullgmsImplementation libs.kotlinx.coroutines.play.services
+}

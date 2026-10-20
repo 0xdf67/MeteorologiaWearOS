@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/weatherNowFragment">
+    <fragment
+        android:id="@+id/weatherNowFragment"
+        android:name="com.thewizrd.simpleweather.main.WeatherNowFragment"
+        android:label="WeatherNowFragment"
+        tools:layout="@layout/fragment_weather_now">
+        <action
+            android:id="@+id/action_weatherNowFragment_to_weatherRadarFragment"
+            app:destination="@id/weatherRadarFragment" />
+        <action
+            android:id="@+id/action_weatherNowFragment_to_locationsFragment"
+            app:destination="@id/locationsFragment"
+            app:launchSingleTop="true" />
+        <action
+            android:id="@+id/action_weatherNowFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment"
+            app:launchSingleTop="true" />
+        <argument
+            android:name="data"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <argument
+            android:name="home"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <argument
+            android:name="background"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+    <fragment
+        android:id="@+id/weatherAlertFragment"
+        android:name="com.thewizrd.simpleweather.main.WeatherAlertFragment"
+        android:label="WeatherAlertFragment"
+        tools:layout="@layout/fragment_weather_list">
+        <argument
+            android:name="data"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+    </fragment>
+    <fragment
+        android:id="@+id/weatherRadarFragment"
+        android:name="com.thewizrd.simpleweather.main.WeatherRadarFragment"
+        android:label="WeatherRadarFragment"
+        tools:layout="@layout/fragment_weather_radar" />
+    <fragment
+        android:id="@+id/locationsFragment"
+        android:name="com.thewizrd.simpleweather.main.LocationsFragment"
+        android:label="LocationsFragment"
+        tools:layout="@layout/fragment_locations">
+        <action
+            android:id="@+id/action_locationsFragment_to_weatherNowFragment"
+            app:destination="@id/weatherNowFragment"
+            app:popUpTo="@id/weatherNowFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.thewizrd.simpleweather.preferences.SettingsFragment"
+        android:label="SettingsFragment"
+        tools:layout="@layout/fragment_settings">
+        <action
+            android:id="@+id/action_settingsFragment_to_unitsFragment"
+            app:destination="@id/unitsFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_featuresFragment2"
+            app:destination="@id/featuresFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_aboutAppFragment"
+            app:destination="@id/aboutAppFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_aboutAppFragment2"
+            app:destination="@id/aboutAppFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_iconsFragment"
+            app:destination="@id/iconsFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_weatherNotificationFragment"
+            app:destination="@id/weatherNotificationFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_weatherAlertsFragment"
+            app:destination="@id/weatherAlertsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/aboutAppFragment"
+        android:name="com.thewizrd.simpleweather.preferences.SettingsFragment$AboutAppFragment"
+        android:label="AboutAppFragment">
+        <action
+            android:id="@+id/action_aboutAppFragment_to_OSSCreditsFragment"
+            app:destination="@id/OSSCreditsFragment" />
+        <action
+            android:id="@+id/action_aboutAppFragment_to_creditsFragment"
+            app:destination="@id/creditsFragment" />
+        <action
+            android:id="@+id/action_aboutAppFragment_to_devSettingsFragment"
+            app:destination="@id/devSettingsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/creditsFragment"
+        android:name="com.thewizrd.simpleweather.preferences.SettingsFragment$CreditsFragment"
+        android:label="CreditsFragment" />
+    <fragment
+        android:id="@+id/featuresFragment"
+        android:name="com.thewizrd.simpleweather.preferences.SettingsFragment$FeaturesFragment"
+        android:label="FeaturesFragment" />
+    <fragment
+        android:id="@+id/OSSCreditsFragment"
+        android:name="com.thewizrd.simpleweather.preferences.SettingsFragment$OSSCreditsFragment"
+        android:label="OSSCreditsFragment" />
+    <fragment
+        android:id="@+id/unitsFragment"
+        android:name="com.thewizrd.simpleweather.preferences.SettingsFragment$UnitsFragment"
+        android:label="UnitsFragment" />
+    <fragment
+        android:id="@+id/iconsFragment"
+        android:name="com.thewizrd.simpleweather.preferences.SettingsFragment$IconsFragment"
+        android:label="IconsFragment">
+        <action
+            android:id="@+id/action_iconsFragment_to_premiumFragment"
+            app:destination="@id/premiumFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/weatherNotificationFragment"
+        android:name="com.thewizrd.simpleweather.preferences.SettingsFragment$WeatherNotificationFragment"
+        android:label="WeatherNotificationFragment" />
+    <fragment
+        android:id="@+id/weatherAlertsFragment"
+        android:name="com.thewizrd.simpleweather.preferences.SettingsFragment$WeatherAlertsFragment"
+        android:label="WeatherAlertsFragment" />
+    <action
+        android:id="@+id/action_global_weatherAlertFragment"
+        app:destination="@id/weatherAlertFragment" />
+    <fragment
+        android:id="@+id/premiumFragment"
+        android:name="com.thewizrd.extras.premium.PremiumFragment"
+        android:label="PremiumFragment" />
+    <fragment
+        android:id="@+id/devSettingsFragment"
+        android:name="com.thewizrd.simpleweather.preferences.DevSettingsFragment"
+        android:label="DevSettingsFragment" />
+    <action
+        android:id="@+id/action_global_premiumFragment"
+        app:destination="@id/premiumFragment" />
+    <action
+        android:id="@+id/action_global_settingsFragment"
+        app:destination="@id/settingsFragment" />
+</navigation>

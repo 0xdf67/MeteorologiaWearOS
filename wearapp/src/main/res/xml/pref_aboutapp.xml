@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="@string/pref_title_about">
+
+    <com.thewizrd.simpleweather.preferences.WearPreference
+        android:key="key_aboutcredits"
+        android:title="@string/pref_title_credits" />
+    <com.thewizrd.simpleweather.preferences.WearPreference
+        android:key="key_aboutoslibs"
+        android:title="@string/pref_title_oslibs" />
+    <com.thewizrd.simpleweather.preferences.WearPreferenceCategory android:title="@string/pref_category_version">
+
+        <com.thewizrd.simpleweather.preferences.WearPreference
+            android:key="key_aboutversion"
+            android:title="@string/app_name" />
+
+    </com.thewizrd.simpleweather.preferences.WearPreferenceCategory>
+
+</PreferenceScreen>

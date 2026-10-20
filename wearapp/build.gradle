@@ -1,0 +1,224 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'com.google.devtools.ksp'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+android {
+    compileSdk = libs.versions.compileSdkVersion.get().toInteger()
+
+    defaultConfig {
+        applicationId "com.thewizrd.simpleweather"
+        testApplicationId "com.thewizrd.simpleweather.test"
+        // Specifies the fully-qualified class name of the test instrumentation runner.
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        minSdkVersion 26
+        targetSdkVersion libs.versions.wearTargetSdkVersion.get()
+        // NOTE: Version Code Format (TargetSDK, Version Name, Build Number, Variant Code [Android: 0, WearOS: 1])
+        // ex) 345100131 = (34, 5.10, 013, 1)
+        versionCode 365140121
+        versionName "5.14.1"
+
+        vectorDrawables {
+            useSupportLibrary true
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            debuggable true
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            manifestPlaceholders = [allowBackup: false]
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            crunchPngs true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            manifestPlaceholders = [allowBackup: true]
+        }
+    }
+
+    buildFeatures {
+        compose true
+        dataBinding true
+        viewBinding true
+        buildConfig true
+    }
+
+    bundle {
+        language {
+            // Specifies that the app bundle should not support
+            // configuration APKs for language resources. These
+            // resources are instead packaged with each base and
+            // dynamic feature APK.
+            enableSplit false
+        }
+    }
+
+    compileOptions {
+        // Flag to enable support for the new language APIs
+        coreLibraryDesugaringEnabled true
+        // Sets Java compatibility to Java 8
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion libs.versions.compose.compiler.version.get()
+    }
+
+    kotlin {
+        jvmToolchain(21)
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+        }
+        fullgms {
+            manifest.srcFile 'src/fullgms/AndroidManifest.xml'
+        }
+        nongms {
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+        }
+    }
+
+    flavorDimensions 'gms'
+    productFlavors {
+        nongms {
+            dimension 'gms'
+            applicationIdSuffix ".foss"
+            versionNameSuffix "-nongms"
+            buildConfigField "boolean", "IS_NONGMS", "true"
+        }
+        fullgms {
+            dimension 'gms'
+            buildConfigField "boolean", "IS_NONGMS", "false"
+        }
+    }
+    namespace 'com.thewizrd.simpleweather'
+}
+
+dependencies {
+    implementation project(":shared_resources")
+    implementation project(":weather-api")
+    implementation project(":common")
+    fullgmsImplementation project(":extras")
+
+    // Core library
+    androidTestImplementation libs.test.core
+
+    // AndroidJUnitRunner and JUnit Rules
+    androidTestImplementation libs.test.runner
+    androidTestImplementation libs.test.rules
+
+    // Assertions
+    androidTestImplementation libs.test.ext.junit
+    androidTestImplementation libs.test.ext.truth
+    androidTestImplementation libs.google.truth
+
+    coreLibraryDesugaring libs.desugar.jdk.libs
+
+    // Kotlin
+    implementation libs.kotlinx.coroutines.core
+    implementation libs.kotlinx.coroutines.android
+    implementation libs.kotlinx.coroutines.play.services
+    nongmsImplementation libs.kotlinx.coroutines.guava
+
+    implementation libs.core.ktx
+    implementation libs.core.splashscreen
+    implementation libs.appcompat
+    implementation libs.fragment.ktx
+    implementation libs.cardview
+    implementation libs.recyclerview
+    implementation libs.preference.ktx
+    implementation libs.legacy.support.v4
+    implementation libs.annotation
+    implementation libs.constraintlayout
+    implementation libs.vectordrawable
+    implementation libs.swiperefreshlayout
+    implementation libs.paging.runtime.ktx
+
+    implementation libs.lifecycle.extensions
+    implementation libs.lifecycle.runtime.ktx
+
+    implementation libs.arch.core.runtime
+    implementation libs.room.runtime
+    ksp libs.room.compiler
+    implementation libs.work.runtime.ktx
+
+    implementation libs.material
+
+    implementation libs.wear
+    implementation libs.wear.input
+    debugImplementation libs.wear.input.testing
+    implementation libs.wear.phone.interactions
+    implementation libs.wear.remote.interactions
+    implementation libs.wear.watchface.complications.data
+    implementation libs.wear.watchface.complications.data.source.ktx
+
+    // WearOS Tiles
+    implementation libs.wear.tiles
+    debugImplementation libs.wear.tiles.renderer
+    testImplementation libs.wear.tiles.testing
+    implementation libs.wear.tiles.tooling
+    implementation libs.wear.tiles.tooling.preview
+    implementation libs.wear.protolayout.material
+    implementation libs.wear.protolayout.material3
+    implementation libs.horologist.tiles
+
+    // WearOS Compose
+    implementation libs.activity.compose
+    implementation libs.compose.compiler
+    implementation platform(libs.compose.bom)
+    implementation libs.compose.ui
+    implementation libs.compose.ui.tooling.preview
+    implementation libs.compose.animation.graphics
+    implementation libs.compose.runtime.livedata
+    implementation libs.compose.material3
+    implementation libs.lifecycle.viewmodel.compose
+    implementation libs.paging.compose
+    implementation libs.wear.compose.foundation
+    implementation libs.wear.compose.material3
+    implementation libs.wear.compose.navigation
+    implementation libs.wear.tooling.preview
+
+    implementation libs.accompanist.drawablepainter
+    implementation libs.horologist.compose.layout
+    implementation libs.horologist.compose.tools
+
+    implementation libs.reorderable
+
+    androidTestImplementation platform(libs.compose.bom)
+    androidTestImplementation libs.compose.ui.test.junit4
+    debugImplementation libs.compose.ui.tooling
+
+    implementation libs.timber
+    implementation libs.icu4j
+
+    implementation libs.moshi.kotlin
+    ksp libs.moshi.kotlin.codegen
+    implementation libs.moshi.adapters
+
+    // Firebase
+    fullgmsImplementation platform(libs.firebase.bom)
+    fullgmsImplementation libs.firebase.analytics
+    fullgmsImplementation libs.firebase.crashlytics
+    fullgmsImplementation libs.firebase.config
+    fullgmsImplementation libs.firebase.perf
+
+    fullgmsImplementation libs.gms.play.services.base
+    fullgmsImplementation libs.gms.play.services.location
+    fullgmsImplementation libs.gms.play.services.wearable
+    fullgmsCompileOnly libs.wearable
+}
+
+if (getGradle().getStartParameter().getTaskRequests().toString().contains("Fullgms")) {
+    apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.firebase.crashlytics'
+    apply plugin: 'com.google.firebase.firebase-perf'
+}

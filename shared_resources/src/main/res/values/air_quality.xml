@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="aqi_level_0_50">Good</string>
+    <string name="aqi_level_51_100">Moderate</string>
+    <string name="aqi_level_101_150">Unhealthy for Sensitive Groups</string>
+    <string name="aqi_level_151_200">Unhealthy</string>
+    <string name="aqi_level_201_300">Very Unhealthy</string>
+    <string name="aqi_level_300">Hazardous</string>
+
+    <string name="aqi_desc_0_50">Air quality is considered satisfactory, and air pollution poses little or no risk</string>
+    <string name="aqi_desc_51_100">Air quality is acceptable</string>
+    <string name="aqi_desc_101_150">Members of sensitive groups may experience health effects. The general public is not likely to be affected.</string>
+    <string name="aqi_desc_151_200">Everyone may begin to experience health effects; members of sensitive groups may experience more serious health effects</string>
+    <string name="aqi_desc_201_300">Health warnings of emergency conditions. The entire population is more likely to be affected.</string>
+    <string name="aqi_desc_300">Health alert: everyone may experience more serious health effects</string>
+
+    <!-- AQI Units -->
+    <!-- Particulate <2.5 microns -->
+    <string name="units_pm25" translatable="false">PM2.5</string>
+    <string name="units_pm25_formatted" translatable="false">PM<sub><small>2.5</small></sub></string>
+    <!-- Particulate <10 microns -->
+    <string name="units_pm10" translatable="false">PM10</string>
+    <string name="units_pm10_formatted" translatable="false">PM<sub><small>10</small></sub></string>
+    <!-- Ozone -->
+    <string name="units_o3" translatable="false">O3</string>
+    <string name="units_o3_formatted" translatable="false">O<sub><small>3</small></sub></string>
+    <!-- Sulfur Dioxide -->
+    <string name="units_so2" translatable="false">SO2</string>
+    <string name="units_so2_formatted" translatable="false">SO<sub><small>2</small></sub></string>
+    <!-- Nitrogen Dioxide -->
+    <string name="units_no2" translatable="false">NO2</string>
+    <string name="units_no2_formatted" translatable="false">NO<sub><small>2</small></sub></string>
+    <!-- Carbon Monoxide -->
+    <string name="units_co" translatable="false">CO</string>
+</resources>

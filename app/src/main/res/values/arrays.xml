@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="userthememode_entries">
+        <item>@string/userthememode_light</item>
+        <item>@string/userthememode_dark</item>
+        <item>@string/userthememode_black</item>
+        <item>@string/userthememode_default</item>
+    </string-array>
+    <string-array name="userthememode_values">
+        <item>3</item>
+        <item>1</item>
+        <item>2</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="notification_entries">
+        <item>@string/notificationicon_temperature</item>
+        <item>@string/notificationicon_condition</item>
+    </string-array>
+    <string-array name="notification_values">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+    <string-array name="bgcolor_entries">
+        <item>@string/label_color_currentconditions</item><!-- Default -->
+        <item>@string/label_color_transparent</item>
+        <item>@string/label_color_custom</item>
+    </string-array>
+    <string-array name="bgcolor_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="fcastopt_entries">
+        <item>@string/label_fcast_full</item>
+        <item>@string/label_fcast_daily</item>
+        <item>@string/label_fcast_hourly</item>
+    </string-array>
+    <string-array name="fcastopt_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="widgetgraphtype_entries">
+        <item>@string/label_fcast_daily</item>
+        <item>@string/label_hourlyforecast</item>
+        <item>@string/label_minutelyforecast</item>
+        <item>@string/label_precipitation</item>
+        <item>@string/label_wind</item>
+        <item>@string/label_humidity</item>
+        <item>@string/label_uv</item>
+        <item>@string/label_airquality_short</item>
+    </string-array>
+    <string-array name="widgetgraphtype_values">
+        <item>0</item>
+        <item>1</item>
+        <item>7</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+    </string-array>
+    <string-array name="notification_fcastopt_entries">
+        <item>@string/pref_summary_off</item>
+        <item>@string/label_fcast_daily</item>
+        <item>@string/label_hourlyforecast</item>
+    </string-array>
+    <string-array name="notification_fcastopt_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="popchancepct_entries">
+        <item>>= 40%</item>
+        <item>>= 50%</item>
+        <item>>= 60%</item>
+        <item>>= 70%</item>
+        <item>>= 80%</item>
+        <item>>= 90%</item>
+    </string-array>
+    <string-array name="popchancepct_values">
+        <item>40</item>
+        <item>50</item>
+        <item>60</item>
+        <item>70</item>
+        <item>80</item>
+        <item>90</item>
+    </string-array>
+    <string-array name="min_alert_severity_entries">
+        <item>@string/alertsev_all</item>
+        <item>@string/alertsev_moderate</item>
+        <item>@string/alertsev_severe</item>
+        <item>@string/alertsev_extreme</item>
+    </string-array>
+    <string-array name="min_alert_severity_values">
+        <item>-1</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+    <string-array name="colortheme_entries">
+        <item>@string/userthememode_default</item>
+        <item>@string/pref_title_feature_bgimage</item>
+    </string-array>
+    <string-array name="colortheme_values">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+</resources>

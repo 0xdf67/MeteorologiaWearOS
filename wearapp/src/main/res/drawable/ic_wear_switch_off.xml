@@ -1,0 +1,27 @@
+<vector android:height="24dp"
+    android:viewportHeight="24.0"
+    android:viewportWidth="32.0"
+    android:width="32dp"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <group
+        android:scaleX="0.6125"
+        android:scaleY="0.6125"
+        android:translateY="2.25">
+        <path
+            android:name="outline"
+            android:strokeColor="?attr/colorOutline"
+            android:strokeWidth="2"
+            android:fillColor="?colorSurfaceContainer"
+            android:pathData="@string/mtrl_switch_track_decoration_path" />
+    </group>
+    <group
+        android:scaleX="0.6125"
+        android:scaleY="0.6125"
+        android:translateY="2.25"
+        android:translateX="-0.75">
+        <path
+            android:fillType="evenOdd"
+            android:fillColor="?attr/colorOutline"
+            android:pathData="@string/mtrl_switch_thumb_path_unchecked" />
+    </group>
+</vector>

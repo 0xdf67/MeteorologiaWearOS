@@ -1,0 +1,174 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:theme="@style/AppWidgetTheme.AppWidgetContainer"
+    tools:layout_width="match_parent"
+    tools:layout_height="288dp"
+    tools:ignore="UseAppTint"
+    tools:viewBindingIgnore="true">
+
+    <include layout="@layout/app_widget_background" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="4dp"
+        android:layout_marginTop="8dp">
+
+        <ImageView
+            android:id="@+id/refresh_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignWithParentIfMissing="true"
+            android:layout_marginEnd="8dp"
+            android:layout_toStartOf="@id/settings_button"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/action_refresh"
+            android:maxWidth="16dp"
+            android:maxHeight="16dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_refresh"
+            android:tint="@android:color/white"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/settings_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignWithParentIfMissing="true"
+            android:layout_marginEnd="8dp"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/action_settings"
+            android:maxWidth="16dp"
+            android:maxHeight="16dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_outline_settings_24"
+            android:tint="@android:color/white"
+            tools:visibility="visible" />
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextClock
+            android:id="@+id/clock_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:format12Hour="@string/clock_12_hours_format"
+            android:format24Hour="@string/clock_24_hours_format"
+            android:gravity="bottom|center_horizontal"
+            android:layout_gravity="center_horizontal"
+            android:maxLines="1"
+            android:shadowColor="#DD000000"
+            android:textColor="@android:color/white"
+            android:textSize="66sp"
+            tools:text="11:00"
+            tools:visibility="visible" />
+
+        <TextClock
+            android:id="@+id/date_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:format12Hour="@string/widget_4x1_date_format"
+            android:format24Hour="@string/widget_4x1_date_format"
+            android:gravity="bottom|center_horizontal"
+            android:layout_gravity="center_horizontal"
+            android:shadowColor="#DD000000"
+            android:textAllCaps="true"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            tools:text="Sun, Oct 08" />
+
+        <TextView
+            android:id="@+id/location_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="bottom|center_horizontal"
+            android:layout_gravity="center_horizontal"
+            android:maxLines="1"
+            android:shadowColor="#000000"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            tools:text="New York, NY"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/spacer_left"
+                android:layout_width="20dp"
+                android:layout_height="match_parent" />
+
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+
+                <ImageView
+                    android:id="@+id/weather_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:adjustViewBounds="true"
+                    android:maxWidth="60dp"
+                    android:maxHeight="60dp"
+                    android:padding="4dp"
+                    android:scaleType="fitCenter"
+                    tools:src="@drawable/wi_day_sunny_overcast" />
+
+                <TextView
+                    android:id="@+id/condition_temp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginBottom="-2dp"
+                    android:layout_toEndOf="@id/weather_icon"
+                    android:gravity="start|center_vertical"
+                    android:shadowColor="#000000"
+                    android:textColor="@android:color/white"
+                    android:textSize="36sp"
+                    tools:text="70°F" />
+
+                <TextView
+                    android:id="@+id/condition_weather"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_marginBottom="-2dp"
+                    android:layout_toStartOf="@id/weather_icon"
+                    android:layout_centerVertical="true"
+                    android:ellipsize="end"
+                    android:gravity="end|center_vertical"
+                    android:maxLines="2"
+                    android:padding="4dp"
+                    android:shadowColor="#000000"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp"
+                    tools:text="Mostly Sunny. Refreshingly cool." />
+
+            </RelativeLayout>
+
+            <TextView
+                android:id="@+id/spacer_right"
+                android:layout_width="20dp"
+                android:layout_height="match_parent" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

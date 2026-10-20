@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="viewModel"
+            type="com.thewizrd.common.controls.DetailItemViewModel" />
+    </data>
+
+    <merge
+        tools:context=".controls.DetailCard"
+        tools:parentTag="android.widget.LinearLayout"
+        android:orientation="horizontal"
+        tools:layout_height="wrap_content"
+        tools:layout_width="wrap_content">
+
+        <com.thewizrd.common.controls.IconControl
+            android:id="@+id/detail_icon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical"
+            android:gravity="center"
+            android:scrollbars="none"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:rotation="@{viewModel.iconRotation}"
+            app:animate="true"
+            app:weatherIcon="@{viewModel.icon}"
+            app:tint="?colorOnSurface"
+            tools:weatherIcon="&#xf079;"
+            tools:srcCompat="@drawable/wi_barometer"
+            tools:tint="?android:textColorPrimary" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center_vertical"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/detail_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:paddingTop="4dp"
+                android:paddingHorizontal="6dp"
+                android:paddingBottom="2dp"
+                android:text="@{viewModel.label}"
+                android:textStyle="bold"
+                android:textColor="?colorOnSurface"
+                android:textSize="@dimen/weather_detail_item_textSize"
+                app:autoSizeMaxTextSize="@dimen/weather_detail_item_textSize"
+                app:autoSizeMinTextSize="8sp"
+                app:autoSizeTextType="uniform"
+                tools:text="Label"
+                tools:textColor="?android:textColorPrimary" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/detail_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:alpha="0.75"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:paddingTop="2dp"
+                android:paddingHorizontal="6dp"
+                android:paddingBottom="4dp"
+                android:scrollbars="none"
+                android:text="@{viewModel.value}"
+                android:textColor="?colorOnSurface"
+                android:textSize="@dimen/weather_detail_item_textSize"
+                app:autoSizeMaxTextSize="@dimen/weather_detail_item_textSize"
+                app:autoSizeMinTextSize="8sp"
+                app:autoSizeTextType="uniform"
+                tools:text="50.00 in"
+                tools:textColor="?android:textColorPrimary" />
+
+        </LinearLayout>
+
+    </merge>
+</layout>

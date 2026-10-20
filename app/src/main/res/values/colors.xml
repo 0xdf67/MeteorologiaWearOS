@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- this is needed as preference_category_material layout uses this color as the text color -->
+    <color name="preference_fallback_accent_color" tools:override="true">?attr/colorPrimary</color>
+
+    <color name="design_snackbar_background_color" tools:override="true">#121212</color>
+
+    <!-- Notification -->
+    <color name="not_icon_tint">@android:color/black</color>
+    <color name="not_secondary_text_color">#8a000000</color>
+
+    <color name="sun_color">#FFFFA500</color>
+    <color name="beaufort_color">#FF800080</color>
+
+    <color name="widget_innerview_background_color">@color/md_theme_light_secondaryContainer</color>
+    <color name="widget_innerview_foreground_color">@color/md_theme_light_onSecondaryContainer
+    </color>
+    <color name="widget_m3_pill_background_color">@color/md_theme_light_secondaryContainer</color>
+    <color name="widget_m3_pill_foreground_color">@color/md_theme_light_primary</color>
+
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+
+</resources>

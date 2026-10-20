@@ -1,0 +1,774 @@
+package com.thewizrd.simpleweather.test
+
+import android.content.Context
+import android.content.SharedPreferences
+import android.location.Geocoder
+import android.os.Bundle
+import android.os.SystemClock
+import android.util.Log
+import androidx.preference.PreferenceManager
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.thewizrd.common.CommonModule
+import com.thewizrd.common.commonModule
+import com.thewizrd.common.controls.WeatherUiModel
+import com.thewizrd.shared_resources.AppState
+import com.thewizrd.shared_resources.ApplicationLib
+import com.thewizrd.shared_resources.DateTimeConstants
+import com.thewizrd.shared_resources.SharedModule
+import com.thewizrd.shared_resources.appLib
+import com.thewizrd.shared_resources.di.settingsManager
+import com.thewizrd.shared_resources.exceptions.WeatherException
+import com.thewizrd.shared_resources.locationdata.LocationData
+import com.thewizrd.shared_resources.locationdata.WeatherLocationProvider
+import com.thewizrd.shared_resources.locationdata.toLocationData
+import com.thewizrd.shared_resources.okhttp3.OkHttp3Utils.await
+import com.thewizrd.shared_resources.preferences.SettingsManager
+import com.thewizrd.shared_resources.remoteconfig.WeatherProviderConfig
+import com.thewizrd.shared_resources.sharedDeps
+import com.thewizrd.shared_resources.utils.Coordinate
+import com.thewizrd.shared_resources.utils.DateTimeUtils
+import com.thewizrd.shared_resources.utils.JSONParser
+import com.thewizrd.shared_resources.utils.LocaleUtils
+import com.thewizrd.shared_resources.utils.StringUtils.isNullOrWhitespace
+import com.thewizrd.shared_resources.utils.ZoneIdCompat
+import com.thewizrd.shared_resources.weatherdata.WeatherAPI
+import com.thewizrd.shared_resources.weatherdata.WeatherProvider
+import com.thewizrd.shared_resources.weatherdata.auth.BasicAuthProviderKey
+import com.thewizrd.shared_resources.weatherdata.model.Weather
+import com.thewizrd.simpleweather.images.ImageDatabase
+import com.thewizrd.simpleweather.images.model.ImageData
+import com.thewizrd.simpleweather.updates.UpdateInfo
+import com.thewizrd.weather_api.aqicn.AQICNProvider
+import com.thewizrd.weather_api.google.location.AndroidLocationProvider
+import com.thewizrd.weather_api.google.location.GoogleLocationProvider
+import com.thewizrd.weather_api.google.location.getFromLocationNameAsync
+import com.thewizrd.weather_api.google.location.isGeocoderAvailable
+import com.thewizrd.weather_api.google.pollen.GooglePollenProvider
+import com.thewizrd.weather_api.here.auth.hereOAuthService
+import com.thewizrd.weather_api.locationiq.LocationIQProvider
+import com.thewizrd.weather_api.nws.SolCalcAstroProvider
+import com.thewizrd.weather_api.nws.alerts.NWSAlertProvider
+import com.thewizrd.weather_api.smc.SunMoonCalcProvider
+import com.thewizrd.weather_api.tomorrow.TomorrowIOWeatherProvider
+import com.thewizrd.weather_api.weatherModule
+import com.thewizrd.weather_api.weatherapi.location.WeatherApiLocationProvider
+import com.thewizrd.weather_api.weatherkit.CurrentWeather
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import okhttp3.Request
+import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.io.IOException
+import java.time.Duration
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import java.util.concurrent.ExecutionException
+
+@RunWith(AndroidJUnit4::class)
+class UnitTests {
+    private lateinit var context: Context
+    private var wasUsingPersonalKey = false
+
+    @Before
+    fun init() {
+        // Context of the app under test.
+        context = ApplicationProvider.getApplicationContext()
+
+        appLib = object : ApplicationLib() {
+            override val context: Context
+                get() = this@UnitTests.context.applicationContext
+            override val preferences: SharedPreferences
+                get() = PreferenceManager.getDefaultSharedPreferences(context)
+
+            override fun registerAppSharedPreferenceListener() {}
+            override fun unregisterAppSharedPreferenceListener() {}
+            override fun registerAppSharedPreferenceListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {}
+            override fun unregisterAppSharedPreferenceListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {}
+
+            override val appState: AppState
+                get() = AppState.BACKGROUND
+            override val isPhone = true
+            override val properties = Bundle()
+            override val settingsManager = SettingsManager(context)
+        }
+
+        // Needs to be called on main thread
+        runBlocking(Dispatchers.Main.immediate) {
+            sharedDeps = object : SharedModule() {
+                override val context = this@UnitTests.context.applicationContext
+            }
+        }
+
+        commonModule = object : CommonModule() {
+            override val context = appLib.context
+        }
+
+        runBlocking {
+            settingsManager.loadIfNeeded()
+        }
+
+        settingsManager.getAPI()?.let { api ->
+            if (settingsManager.usePersonalKey(api)) {
+                settingsManager.setPersonalKey(api, false)
+                wasUsingPersonalKey = true
+            }
+        }
+    }
+
+    @After
+    fun destroy() {
+        settingsManager.getAPI()?.let { api ->
+            if (wasUsingPersonalKey) {
+                settingsManager.setPersonalKey(api, true)
+                wasUsingPersonalKey = false
+            }
+        }
+    }
+
+    @Throws(WeatherException::class)
+    private suspend fun getWeather(
+        provider: WeatherProvider,
+        coordinate: Coordinate = Coordinate(
+            47.6721646,
+            -122.1706614
+        ) /* Redmond, WA */
+    ) = withContext(Dispatchers.IO) {
+        val location = provider.getLocation(coordinate)
+        assertNotNull(location)
+        if (location!!.locationTZLong.isNullOrBlank() && location.locationLat != 0.0 && location.locationLong != 0.0) {
+            val tzId =
+                weatherModule.tzdbService.getTimeZone(location.locationLat, location.locationLong)
+            if ("unknown" != tzId)
+                location.locationTZLong = tzId
+        }
+        val locData = location.toLocationData()
+        return@withContext provider.getWeather(locData)
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getHEREWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider = weatherModule.weatherManager.getWeatherProvider(WeatherAPI.HERE)
+            val weather = getWeather(provider)
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getMetNoWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider = weatherModule.weatherManager.getWeatherProvider(WeatherAPI.METNO)
+            val weather = getWeather(provider)
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getNWSAlerts() {
+        runBlocking(Dispatchers.Default) {
+            val location =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.OPENWEATHERMAP)
+                    .getLocation(Coordinate(47.6721646, -122.1706614))
+            val locData = location!!.toLocationData()
+            val alerts = withContext(Dispatchers.IO) {
+                NWSAlertProvider().getAlerts(locData)
+            }
+            assertNotNull(alerts)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getNWSWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider = weatherModule.weatherManager.getWeatherProvider(WeatherAPI.NWS)
+            val weather = getWeather(provider)
+            assertTrue(weather.forecast?.isNotEmpty() == true && weather.hrForecast?.isNotEmpty() == true)
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getOWMWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.OPENWEATHERMAP)
+            val weather = getWeather(provider)
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getWUnlockedWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.WEATHERUNLOCKED)
+            val weather = getWeather(provider)
+            assertTrue(!weather.forecast.isNullOrEmpty() && !weather.hrForecast.isNullOrEmpty())
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Test
+    fun getHEREOAuthToken() {
+        runBlocking(Dispatchers.Default) {
+            val token = withContext(Dispatchers.IO) {
+                hereOAuthService.getBearerToken(true)
+            }
+            assertFalse(token.isNullOrEmpty())
+        }
+    }
+
+    @Test
+    fun getTimeZone() {
+        runBlocking(Dispatchers.Default) {
+            val tz = withContext(Dispatchers.IO) {
+                weatherModule.tzProvider.getTimeZone(0.0, 0.0)
+            }
+            Log.d("TZTest", "tz = $tz")
+            assertFalse(tz.isNullOrEmpty())
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getAQIData() {
+        runBlocking(Dispatchers.Default) {
+            val locationData = LocationData().apply {
+                latitude = 47.6721646
+                longitude = -122.1706614
+                tzLong = "America/Los_Angeles"
+            }
+
+            val aqi = withContext(Dispatchers.IO) {
+                AQICNProvider().getAirQualityData(locationData)
+            }
+            assertNotNull(aqi)
+        }
+    }
+
+    @Test
+    @Throws(WeatherException::class, IOException::class)
+    fun serializationTest() {
+        runBlocking(Dispatchers.Default) {
+            val provider = weatherModule.weatherManager.getWeatherProvider(WeatherAPI.NWS)
+
+            val startTime = SystemClock.elapsedRealtimeNanos()
+            val weather = getWeather(provider)
+            val endTime = SystemClock.elapsedRealtimeNanos()
+            val dura = Duration.ofNanos(endTime - startTime)
+            Log.d("Serialzer", "JSON GetWeather Test: $dura")
+
+            for (i in 0..29) {
+                val startTime2 = SystemClock.elapsedRealtimeNanos()
+                val json2 = withContext(Dispatchers.Default) {
+                    JSONParser.serializer(weather, Weather::class.java)
+                }
+                withContext(Dispatchers.Default) {
+                    JSONParser.deserializer(json2, Weather::class.java)
+                }
+                val endTime2 = SystemClock.elapsedRealtimeNanos()
+                val dura2 = Duration.ofNanos(endTime2 - startTime2)
+
+                Log.d("Serialzer", "JSON2 Test ${i + 1}: $dura2")
+            }
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getSunriseSetTime() {
+        runBlocking(Dispatchers.Default) {
+            val date = ZonedDateTime.now()
+
+            val locationData = LocationData().apply {
+                latitude = 47.6721646
+                longitude = -122.1706614
+                tzLong = "America/Los_Angeles"
+            }
+
+            val astro = withContext(Dispatchers.Default) {
+                SolCalcAstroProvider().getAstronomyData(locationData, date)
+            }
+
+            val fmt = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+            Log.d("SolCalc", String.format(Locale.ROOT,
+                    "Sunrise: %s; Sunset: %s", astro.sunrise.format(fmt), astro.sunset.format(fmt)))
+            assertTrue(astro.sunrise != DateTimeUtils.LOCALDATETIME_MIN && astro.sunset != DateTimeUtils.LOCALDATETIME_MIN)
+        }
+    }
+
+    @Test
+    @Throws(ExecutionException::class, InterruptedException::class)
+    fun firebaseDBTest() {
+        runBlocking(Dispatchers.Default) {
+            val remoteDBVersionTimestamp = ImageDatabase.getVersionTimestamp()
+            assertTrue(remoteDBVersionTimestamp > 0)
+        }
+    }
+
+    @Test
+    @Throws(Exception::class)
+    fun simpleAstroTest() {
+        runBlocking(Dispatchers.Default) {
+            val date = ZonedDateTime.now()
+            val locationData = LocationData().apply {
+                latitude = 71.17
+                longitude = -156.47
+                tzLong = "America/Anchorage"
+            }
+            val astro = withContext(Dispatchers.Default) {
+                SunMoonCalcProvider().getAstronomyData(locationData, date)
+            }
+
+            val fmt = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+            Log.d("SMC", String.format(Locale.ROOT,
+                    "Sunrise: %s; Sunset: %s, Moonrise: %s; Moonset: %s", astro.sunrise.format(fmt), astro.sunset.format(fmt), astro.moonrise.format(fmt), astro.moonset.format(fmt)))
+            if (astro.moonPhase != null) {
+                Log.d("SMC", String.format(Locale.ROOT,
+                        "Moonphase: %s", astro.moonPhase.phase.name))
+            }
+
+            assertTrue(astro.sunrise != DateTimeUtils.LOCALDATETIME_MIN && astro.sunset != DateTimeUtils.LOCALDATETIME_MIN && astro.moonrise != DateTimeUtils.LOCALDATETIME_MIN && astro.moonset != DateTimeUtils.LOCALDATETIME_MIN)
+        }
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun androidAutoCompleteLocTest() {
+        runBlocking(Dispatchers.Default) {
+            assertTrue(isGeocoderAvailable())
+            val geocoder = Geocoder(context, Locale.getDefault())
+            val addressList = withContext(Dispatchers.IO) {
+                geocoder.getFromLocationNameAsync("Redmond", 5) // Redmond
+            }
+            assertFalse(addressList.isEmpty())
+        }
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun androidGeocoderTest() {
+        runBlocking(Dispatchers.Default) {
+            assertTrue(isGeocoderAvailable())
+            val locationProvider = AndroidLocationProvider()
+            val location = withContext(Dispatchers.IO) {
+                locationProvider.getLocation(Coordinate(51.5073884, -0.1334347), WeatherAPI.ANDROID)
+            }
+            assertNotNull(location)
+            assertFalse(location.locationName.toString().contains("null"))
+        }
+    }
+
+    @Test
+    @Throws(WeatherException::class)
+    fun placesAPITest() {
+        runBlocking(Dispatchers.Default) {
+            val locationProvider = GoogleLocationProvider()
+            val locations = withContext(Dispatchers.IO) {
+                locationProvider.getLocations("Berlin, Germany", WeatherAPI.GOOGLE)
+            }
+            assertFalse(locations.isEmpty())
+
+            val queryVM = locations.firstOrNull()
+            assertNotNull(queryVM)
+
+            val locModel = if (locationProvider.needsLocationFromID()) {
+                locationProvider.getLocationFromID(queryVM!!)
+            } else if (locationProvider.needsLocationFromName()) {
+                locationProvider.getLocationFromName(queryVM!!)
+            } else if (locationProvider.needsLocationFromGeocoder()) {
+                locationProvider.getLocation(
+                    Coordinate(
+                        queryVM!!.locationLat,
+                        queryVM.locationLong
+                    ), WeatherAPI.GOOGLE
+                )
+            } else {
+                queryVM
+            }
+
+            assertNotNull(locModel)
+            assertFalse(locModel?.locationName.isNullOrWhitespace())
+            assertTrue(locModel?.toLocationData()?.isValid == true)
+        }
+    }
+
+    @Test
+    @Throws(WeatherException::class)
+    fun locIQLocationTest() {
+        runBlocking(Dispatchers.Default) {
+            val locationProvider: WeatherLocationProvider = LocationIQProvider()
+            val locations = withContext(Dispatchers.IO) {
+                locationProvider.getLocations("Redmond, WA", WeatherAPI.LOCATIONIQ)
+            }
+            assertFalse(locations.isEmpty())
+
+            val queryVM = locations.find { it.locationName?.startsWith("Redmond") == true }
+            assertNotNull(queryVM)
+
+            val locModel = if (locationProvider.needsLocationFromName()) {
+                locationProvider.getLocationFromName(queryVM!!)
+            } else if (locationProvider.needsLocationFromGeocoder()) {
+                locationProvider.getLocation(
+                    Coordinate(
+                        queryVM!!.locationLat,
+                        queryVM.locationLong
+                    ), WeatherAPI.LOCATIONIQ
+                )
+            } else if (locationProvider.needsLocationFromID()) {
+                locationProvider.getLocationFromID(queryVM!!)
+            } else {
+                queryVM
+            }
+
+            assertNotNull(locModel)
+            assertFalse(locModel?.locationName.isNullOrWhitespace())
+            assertTrue(locModel?.toLocationData()?.isValid == true)
+        }
+    }
+
+    @Test
+    @Throws(WeatherException::class)
+    fun locIQLocationGeocoderTest() {
+        runBlocking(Dispatchers.Default) {
+            val locationProvider: WeatherLocationProvider = LocationIQProvider()
+            val locModel = withContext(Dispatchers.IO) {
+                locationProvider.getLocation(Coordinate(51.5073884, -0.1334347), WeatherAPI.ANDROID)
+            }
+
+            assertNotNull(locModel)
+            assertFalse(locModel?.locationName.isNullOrWhitespace())
+            assertTrue(locModel?.toLocationData()?.isValid == true)
+        }
+    }
+
+    @Test
+    @Throws(WeatherException::class)
+    fun weatherAPILocationTest() {
+        runBlocking(Dispatchers.Default) {
+            val locationProvider: WeatherLocationProvider = WeatherApiLocationProvider()
+            val locations = withContext(Dispatchers.IO) {
+                locationProvider.getLocations("Redmond, WA", WeatherAPI.WEATHERAPI)
+            }
+            assertFalse(locations.isEmpty())
+
+            val queryVM = locations.find { it.locationName?.startsWith("Redmond") == true }
+            assertNotNull(queryVM)
+
+            val locModel = if (locationProvider.needsLocationFromName()) {
+                locationProvider.getLocationFromName(queryVM!!)
+            } else if (locationProvider.needsLocationFromGeocoder()) {
+                locationProvider.getLocation(
+                    Coordinate(
+                        queryVM!!.locationLat,
+                        queryVM.locationLong
+                    ), WeatherAPI.WEATHERAPI
+                )
+            } else if (locationProvider.needsLocationFromID()) {
+                locationProvider.getLocationFromID(queryVM!!)
+            } else {
+                queryVM
+            }
+
+            assertNotNull(locModel)
+            assertFalse(locModel?.locationName.isNullOrWhitespace())
+            assertTrue(locModel?.toLocationData()?.isValid == true)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getMeteoFranceWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.METEOFRANCE)
+            val weather = getWeather(provider, Coordinate(48.85, 2.34))
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getWeatherAPIWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider = weatherModule.weatherManager.getWeatherProvider(WeatherAPI.WEATHERAPI)
+            val weather = getWeather(provider)
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getTomorrowIOWeather() {
+        val originalKey = settingsManager.getAPIKey(WeatherAPI.TOMORROWIO)
+
+        settingsManager.setPersonalKey(WeatherAPI.TOMORROWIO, true)
+        settingsManager.setAPIKey(WeatherAPI.TOMORROWIO, "TomorrowIo_REPLACE_VALUE")
+
+        runBlocking(Dispatchers.Default) {
+            val provider = weatherModule.weatherManager.getWeatherProvider(WeatherAPI.TOMORROWIO)
+            val weather =
+                getWeather(provider, Coordinate(34.0207305, -118.6919157)) // ~ Los Angeles
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+
+        settingsManager.setAPIKey(WeatherAPI.TOMORROWIO, originalKey)
+        settingsManager.setPersonalKey(WeatherAPI.TOMORROWIO, false)
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getWeatherbitIOWeather() {
+        val originalKey = settingsManager.getAPIKey(WeatherAPI.WEATHERBITIO)
+
+        settingsManager.setPersonalKey(WeatherAPI.WEATHERBITIO, true)
+        settingsManager.setAPIKey(WeatherAPI.WEATHERBITIO, "WeatherBitIo_REPLACE_VALUE")
+
+        runBlocking(Dispatchers.Default) {
+            val provider =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.WEATHERBITIO)
+            val weather =
+                getWeather(provider, Coordinate(39.9, -105.1)) // ~ Denver, CO
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+
+        settingsManager.setAPIKey(WeatherAPI.WEATHERBITIO, originalKey)
+        settingsManager.setPersonalKey(WeatherAPI.WEATHERBITIO, false)
+    }
+
+    @Test
+    fun getPollenData() {
+        val originalKey = settingsManager.getAPIKey(WeatherAPI.TOMORROWIO)
+
+        settingsManager.setPersonalKey(WeatherAPI.TOMORROWIO, true)
+        settingsManager.setAPIKey(WeatherAPI.TOMORROWIO, "TomorrowIo_REPLACE_VALUE")
+
+        runBlocking(Dispatchers.Default) {
+            val provider = TomorrowIOWeatherProvider()
+            val location =
+                provider.getLocation(Coordinate(34.0207305, -118.6919157))?.toLocationData()
+            assertNotNull(location)
+            val pollenData = provider.getPollenData(location!!)
+            assertNotNull(pollenData)
+        }
+
+        settingsManager.setAPIKey(WeatherAPI.TOMORROWIO, originalKey)
+        settingsManager.setPersonalKey(WeatherAPI.TOMORROWIO, false)
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getMeteomaticsWeather() {
+        val originalKey = settingsManager.getAPIKey(WeatherAPI.METEOMATICS)
+
+        settingsManager.setPersonalKey(WeatherAPI.METEOMATICS, true)
+        settingsManager.setAPIKey(
+            WeatherAPI.METEOMATICS,
+            BasicAuthProviderKey("username", "password").toString()
+        )
+
+        runBlocking(Dispatchers.Default) {
+            val provider =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.METEOMATICS)
+            val weather =
+                getWeather(provider, Coordinate(52.22, 20.97))
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+
+        settingsManager.setAPIKey(WeatherAPI.METEOMATICS, originalKey)
+        settingsManager.setPersonalKey(WeatherAPI.METEOMATICS, false)
+    }
+
+    @Test
+    fun tzdbTest() {
+        val tzLong = "Asia/Qostanay" // tzdb - 2018h
+
+        val zId = ZoneIdCompat.of(tzLong)
+        assertNotNull(zId)
+
+        val zDT = ZonedDateTime.now(zId)
+        val zStr = zDT.format(
+            DateTimeUtils.ofPatternForUserLocale(DateTimeConstants.TIMEZONE_NAME)
+        )
+        Log.d("tzdbtest", "DT = ${zDT.format(DateTimeFormatter.ISO_ZONED_DATE_TIME)}")
+        Log.d("tzdbtest", "Z = $zStr")
+
+        assertTrue(zStr == "Asia/Qostanay" || zStr == "GMT+06:00")
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getWeatherKitWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.APPLE)
+            val weather =
+                getWeather(provider, Coordinate(34.0207305, -118.6919157))
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getDWDWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.DWD)
+            val weather =
+                getWeather(provider, Coordinate(52.52, 13.4)) // Berlin
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getECCCWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.ECCC)
+            val weather =
+                getWeather(provider, Coordinate(48.737, -91.984)) // Banning, ON
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getECCCWeather_FR() {
+        runBlocking(Dispatchers.Default) {
+            val locale = LocaleUtils.getLocale()
+            LocaleUtils.setLocaleCode(Locale.CANADA_FRENCH.toLanguageTag())
+
+            val provider =
+                weatherModule.weatherManager.getWeatherProvider(WeatherAPI.ECCC)
+            val weather =
+                getWeather(provider, Coordinate(48.737, -91.984)) // Banning, ON
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+            // Restore
+            LocaleUtils.setLocaleCode(locale.toLanguageTag())
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getGoogleWeather() {
+        val originalKey = settingsManager.getAPIKey(WeatherAPI.GOOGLE)
+
+        settingsManager.setPersonalKey(WeatherAPI.GOOGLE, true)
+        settingsManager.setAPIKey(WeatherAPI.GOOGLE, "Google_REPLACE_VALUE")
+
+        runBlocking(Dispatchers.Default) {
+            val provider = weatherModule.weatherManager.getWeatherProvider(WeatherAPI.GOOGLE)
+            val weather =
+                getWeather(provider, Coordinate(37.4220083, -122.0876528)) // ~ Mountain View
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+
+        settingsManager.setAPIKey(WeatherAPI.GOOGLE, originalKey)
+        settingsManager.setPersonalKey(WeatherAPI.GOOGLE, false)
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getOpenMeteoWeather() {
+        runBlocking(Dispatchers.Default) {
+            val provider = weatherModule.weatherManager.getWeatherProvider(WeatherAPI.OPENMETEO)
+            val weather =
+                getWeather(provider, Coordinate(52.52, 13.41)) // ~ Berlin
+            assertTrue(weather.isValid && WeatherUiModel(weather).isValid)
+        }
+    }
+
+    @Throws(WeatherException::class)
+    @Test
+    fun getGooglePollen() {
+        val originalKey = settingsManager.getAPIKey(WeatherAPI.GOOGLE_POLLEN)
+
+        settingsManager.setPersonalKey(WeatherAPI.GOOGLE_POLLEN, true)
+        settingsManager.setAPIKey(WeatherAPI.GOOGLE_POLLEN, "Google_REPLACE_VALUE")
+
+        runBlocking(Dispatchers.Default) {
+            val locationData = LocationData().apply {
+                latitude = 47.6721646
+                longitude = -122.1706614
+                tzLong = "America/Los_Angeles"
+            }
+
+            val pollen = GooglePollenProvider().getPollenData(locationData) // ~ Mountain View
+            assertNotNull(pollen)
+        }
+
+        settingsManager.setAPIKey(WeatherAPI.GOOGLE_POLLEN, originalKey)
+        settingsManager.setPersonalKey(WeatherAPI.GOOGLE_POLLEN, false)
+    }
+
+    @Test
+    fun moshiSerializeTest() {
+        JSONParser.deserializer<WeatherProviderConfig>(
+            "{\"enabled\":false,\"locSource\":\"weatherapi\",\"newWeatherSource\":\"wunlocked\"}",
+            WeatherProviderConfig::class.java
+        )
+        JSONParser.deserializer<ImageData>(
+            "{\"color\":\"#FFA9C3D9\",\"imageURL\":\"https://about:blank\",\"artistName\":\"artist\",\"condition\":\"day\",\"originalLink\":\"https://about:blank\",\"siteName\":\"web\"}",
+            ImageData::class.java
+        )
+        JSONParser.deserializer<CurrentWeather>("{}", CurrentWeather::class.java)
+        JSONParser.deserializer<UpdateInfo>(
+            "{\"version\":0,\"updatePriority\":0}",
+            UpdateInfo::class.java
+        )
+    }
+
+    @Test
+    fun test500error() {
+        val request = Request.Builder()
+            .url("https://httpstat.us/500")
+            .build()
+
+        val client = sharedDeps.httpClient
+
+        runBlocking {
+            client.newCall(request).await()
+        }
+    }
+
+    @Test
+    fun test502error() {
+        val request = Request.Builder()
+            .url("https://httpstat.us/502?sleep=1000")
+            .build()
+
+        val client = sharedDeps.httpClient
+
+        runBlocking {
+            client.newCall(request).await()
+        }
+    }
+
+    @Test
+    fun test504error() {
+        val request = Request.Builder()
+            .url("https://httpstat.us/504?sleep=1000")
+            .build()
+
+        val client = sharedDeps.httpClient
+
+        runBlocking {
+            client.newCall(request).await()
+        }
+    }
+}

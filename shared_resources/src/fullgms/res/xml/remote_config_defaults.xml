@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<defaultsMap>
+    <entry>
+        <key>Here</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "android",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>Yahoo</key>
+        <value>
+            {
+            "enabled": false,
+            "locSource": "weatherapi",
+            "newWeatherSource": "wunlocked"
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>Metno</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "LocIQ",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>NWS</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "android",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>openweather</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "LocIQ",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>openweather_onecall</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "LocIQ",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>wunlocked</key>
+        <value>
+            {
+            "enabled": false,
+            "locSource": "android",
+            "newWeatherSource": "weatherapi"
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>meteofrance</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "LocIQ",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>weatherapi</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "android",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>tomorrowio</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "LocIQ",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>accuweather</key>
+        <value>
+            {
+            "enabled": false,
+            "locSource": "accuweather",
+            "newWeatherSource": "Metno"
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>weatherbitio</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "LocIQ",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>apple</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "google",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>google</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "google",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>rainviewer</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>dwd</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "LocIQ",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>eccc</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "LocIQ",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>google_pollen</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "google",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>open_meteo</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "weatherapi",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>IPMA</key>
+        <value>
+            {
+            "enabled": true,
+            "locSource": "IPMA",
+            "newWeatherSource": ""
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>default_weather_provider</key>
+        <value>open_meteo</value>
+    </entry>
+    <entry>
+        <key>key_imagedb_valid_days</key>
+        <value>30</value>
+    </entry>
+</defaultsMap>

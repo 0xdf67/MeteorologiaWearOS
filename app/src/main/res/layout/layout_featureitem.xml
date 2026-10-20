@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="56dp"
+    android:gravity="center_vertical"
+    android:paddingStart="@dimen/preference_expressive_space_small1"
+    android:paddingEnd="@dimen/preference_expressive_space_small1"
+    android:clipToPadding="false"
+    android:baselineAligned="false"
+    android:filterTouchesWhenObscured="false"
+    tools:layout_height="wrap_content"
+    tools:layout_width="match_parent"
+    tools:parentTag="android.widget.LinearLayout"
+    tools:viewBindingIgnore="true">
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:clickable="false"
+        android:longClickable="false"
+        android:contextClickable="false"
+        android:duplicateParentState="true"
+        android:layout_marginEnd="@dimen/preference_expressive_space_extraSmall6" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/title"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_gravity="start"
+        android:gravity="start|center_vertical"
+        android:ellipsize="marquee"
+        android:maxLines="2"
+        android:paddingHorizontal="8dp"
+        android:textAlignment="viewStart"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        tools:text="@string/pref_title_features" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/drag_handle"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
+        android:contentDescription="@null"
+        android:paddingHorizontal="16dp"
+        app:srcCompat="@drawable/ic_drag_handle_24"
+        app:tint="?attr/colorOnSurface" />
+
+</merge>

@@ -1,0 +1,90 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+
+    <dimen name="searchview_height_region_search">@dimen/m3_searchbar_height</dimen> <!-- 56dp -->
+
+    <!-- Material dimens -->
+    <dimen name="appbar_elevation">4dp</dimen>
+    <dimen name="fab_size">56dp</dimen>
+    <dimen name="dialog_corner_radius">@dimen/shape_corner_radius</dimen>
+    <dimen name="design_snackbar_padding_horizontal" tools:override="true">12dp</dimen>
+    <dimen name="design_snackbar_background_corner_radius" tools:override="true">
+        @dimen/shape_corner_radius
+    </dimen>
+    <!-- Bottom Nav Bar -->
+    <dimen name="design_bottom_navigation_height" tools:override="true">60dp</dimen>
+    <!-- Preferences -->
+    <dimen name="preference_category_padding_start" tools:override="true">56dp</dimen>
+    <dimen name="preference_no_icon_padding_start" tools:override="true">72dp</dimen>
+    <dimen name="preference_seekbar_padding_end" tools:override="true">22dp</dimen>
+    <dimen name="preference_seekbar_padding_start" tools:override="true">0dp</dimen>
+    <dimen name="preference_seekbar_value_width" tools:override="true">36dp</dimen>
+
+    <!-- WeatherNow -->
+    <dimen name="label_location_size">18sp</dimen>
+    <dimen name="label_updatetime_size">12sp</dimen>
+    <dimen name="section_label_horizontal_padding">16dp</dimen>
+    <dimen name="section_label_vertical_padding">16dp</dimen>
+    <dimen name="section_label_padding">16dp</dimen>
+    <dimen name="forecast_panel_height">225dp</dimen>
+    <dimen name="bargraph_panel_height">150dp</dimen>
+    <dimen name="barview_panel_height">135dp</dimen>
+    <dimen name="detail_card_size">100dp</dimen>
+    <dimen name="detail_grid_column_width">150dp</dimen>
+    <dimen name="moonriseset_text_size">16sp</dimen>
+    <dimen name="moonriseset_image_size">24dp</dimen>
+    <dimen name="sun_phase_view_height">200dp</dimen>
+    <dimen name="wnow_max_view_width">1366dp</dimen>
+    <dimen name="aqi_forecast_textsize">14sp</dimen>
+    <dimen name="hr_forecast_item_width">90dp</dimen>
+    <dimen name="hr_forecast_item_height">160dp</dimen>
+    <dimen name="hr_forecast_item_icon_size">36dp</dimen>
+    <dimen name="hr_forecast_item_temp_size">18sp</dimen>
+    <dimen name="hr_forecast_item_extra_icon_size">20dp</dimen>
+    <dimen name="weather_summary_text_size">12sp</dimen>
+    <dimen name="image_container_size">420dp</dimen>
+    <dimen name="image_container_aspectRatio">1.5</dimen>
+    <!-- Forecast -->
+    <dimen name="forecast_date_size">14sp</dimen>
+    <dimen name="forecast_condition_size">12sp</dimen>
+    <dimen name="weather_detail_item_textSize">14sp</dimen>
+    <dimen name="graph_text_size">13sp</dimen>
+    <!-- Locations -->
+    <dimen name="location_panel_height">130dp</dimen>
+    <dimen name="location_panel_minwidth">480dp</dimen>
+    <dimen name="delete_icon_margin">12dp</dimen>
+
+    <!-- Widget -->
+    <dimen name="clock_text_size">36sp</dimen>
+    <dimen name="date_text_size">16sp</dimen>
+    <dimen name="widget4x1G_text_size">24sp</dimen>
+    <dimen name="widget_2x2_pill_size">294dp</dimen>
+    <!-- Notification -->
+    <dimen name="not_horiz_padding">4dp</dimen>
+    <dimen name="not_vert_padding">4dp</dimen>
+    <dimen name="not_layout_height">72dp</dimen>
+    <dimen name="not_weather_icon_size">48dp</dimen>
+    <dimen name="not_weather_icon_marginStart">4dp</dimen>
+    <dimen name="not_weather_icon_marginEnd">12dp</dimen>
+    <dimen name="not_primary_textSize">14sp</dimen>
+
+    <dimen name="graph_max_width">720dp</dimen>
+    <dimen name="details_item_min_width">360dp</dimen>
+
+    <!-- Widget Sizes -->
+    <dimen name="appwidget_cells_1">40dp</dimen>
+    <dimen name="appwidget_cells_2">110dp</dimen>
+    <dimen name="appwidget_cells_3">180dp</dimen>
+    <dimen name="appwidget_cells_4">250dp</dimen>
+    <dimen name="appwidget_cells_5">320dp</dimen>
+
+    <!-- Settings -->
+    <dimen name="preference_expressive_corner_radius">20dp</dimen>
+    <dimen name="preference_expressive_space_extraSmall4">8dp</dimen>
+    <dimen name="preference_expressive_space_extraSmall6">12dp</dimen>
+    <dimen name="preference_expressive_space_small1">16dp</dimen>
+    <dimen name="preference_expressive_space_medium3">40dp</dimen>
+    <dimen name="preference_expressive_space_large3">72dp</dimen>
+
+</resources>

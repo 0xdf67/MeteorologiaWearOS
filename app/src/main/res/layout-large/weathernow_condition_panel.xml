@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="android.view.View" />
+
+        <import type="com.thewizrd.shared_resources.utils.StringUtils" />
+
+        <import type="com.thewizrd.simpleweather.preferences.FeatureSettings" />
+
+        <variable
+            name="viewModel"
+            type="com.thewizrd.simpleweather.viewmodels.WeatherNowViewModel" />
+
+        <variable
+            name="alertsView"
+            type="com.thewizrd.common.controls.WeatherAlertsViewModel" />
+
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/location_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="8dp"
+            android:paddingHorizontal="16dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/gps_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_margin="8dp"
+                android:layout_gravity="center_vertical"
+                app:srcCompat="@drawable/ic_place_white_24dp"
+                app:showIfTrue="@{viewModel.uiState.GPSLocation}"
+                app:tint="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null ? @android:color/white : @color/colorOnSurface}"
+                tools:tint="?attr/colorOnSurface" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/location_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:gravity="center_horizontal"
+                android:maxLines="2"
+                android:text="@{viewModel.weather.location}"
+                android:textAppearance="?textAppearanceHeadline6"
+                android:textColor="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null ? @android:color/white : @color/colorOnSurface}"
+                tools:text="A Really Long String of Text, New York, United States"
+                tools:textColor="@color/colorOnSurface" />
+
+        </LinearLayout>
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/label_updatetime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:padding="4dp"
+            android:text="@{viewModel.weather.updateDate}"
+            android:textSize="12sp"
+            android:textAppearance="?textAppearanceBodySmallEmphasized"
+            android:textColor="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null ? @android:color/white : @color/colorOnSurface}"
+            tools:text="Updated on 11:12 PM"
+            tools:ignore="MissingConstraints" />
+
+        <LinearLayout
+            android:id="@+id/alert_button"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:background="?colorErrorContainer"
+            android:layout_marginBottom="8dp"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingLeft="4dp"
+            android:paddingEnd="4dp"
+            android:paddingRight="4dp"
+            android:visibility="gone"
+            app:hideIfEmpty="@{alertsView.alerts}"
+            tools:visibility="visible">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:padding="4dp"
+                app:srcCompat="@drawable/ic_error_white"
+                app:tint="?colorOnErrorContainer" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1"
+                android:paddingStart="4dp"
+                android:text="@string/title_fragment_alerts"
+                android:textAppearance="?textAppearanceLabelLargeEmphasized"
+                android:textColor="?colorOnErrorContainer" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:padding="4dp"
+                app:srcCompat="@drawable/ic_chevron_right"
+                app:tint="?colorOnErrorContainer" />
+
+        </LinearLayout>
+
+        <Space
+            android:id="@+id/image_view_spacer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            app:showIfTrue="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null}"
+            tools:layout_height="360dp" />
+
+        <LinearLayout
+            android:id="@+id/condition_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:orientation="vertical"
+            app:hideIfNullOrWhitespace="@{viewModel.weather.location}"
+            tools:layout_height="wrap_content">
+
+            <RelativeLayout
+                android:id="@+id/spacer"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="bottom">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/weather_temp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="start|center_vertical"
+                    android:padding="4dp"
+                    android:scrollbars="none"
+                    android:text="@{viewModel.weather.curTemp}"
+                    android:textAppearance="@style/TextAppearance.WeatherNow.Temperature"
+                    app:tempTextColor="@{viewModel.weather.curTemp}"
+                    tools:text="70°F" />
+
+                <LinearLayout
+                    android:id="@+id/weather_hilo_layout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="6dp"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp"
+                    android:paddingEnd="6dp"
+                    android:gravity="center_vertical"
+                    android:layout_toEndOf="@id/weather_temp"
+                    android:layout_alignTop="@id/weather_temp"
+                    android:layout_alignBottom="@id/weather_temp"
+                    app:showIfTrue="@{viewModel.weather.showHiLo}"
+                    tools:visibility="visible">
+
+                    <com.thewizrd.common.controls.TextViewDrawableCompat
+                        android:id="@+id/weather_hi"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical|end"
+                        android:layout_gravity="end"
+                        android:minWidth="60dp"
+                        android:scrollbars="none"
+                        android:text="@{viewModel.weather.hiTemp}"
+                        android:textAppearance="@style/TextAppearance.WeatherNow.HiLoTemp"
+                        android:textColor="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null ? @android:color/white : @color/colorOnSurface}"
+                        app:drawableHeight="30dp"
+                        app:drawableWidth="30dp"
+                        app:drawableEndCompat="@drawable/wi_direction_up"
+                        app:drawableTint="#FFFF4500"
+                        tools:text="75°"
+                        tools:visibility="visible" />
+
+                    <com.thewizrd.common.controls.TextViewDrawableCompat
+                        android:id="@+id/weather_lo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical|end"
+                        android:layout_gravity="end"
+                        android:minWidth="60dp"
+                        android:scrollbars="none"
+                        android:text="@{viewModel.weather.loTemp}"
+                        android:textAppearance="@style/TextAppearance.WeatherNow.HiLoTemp"
+                        android:textColor="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null ? @android:color/white : @color/colorOnSurface}"
+                        app:drawableHeight="30dp"
+                        app:drawableWidth="30dp"
+                        app:drawableEndCompat="@drawable/wi_direction_down"
+                        app:drawableTint="#FF87CEFA"
+                        tools:text="65°"
+                        tools:visibility="visible" />
+
+                </LinearLayout>
+
+                <com.thewizrd.common.controls.IconControl
+                    android:id="@+id/weather_icon"
+                    android:layout_width="0dp"
+                    android:layout_height="88dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginEnd="16dp"
+                    android:layout_toEndOf="@id/weather_hilo_layout"
+                    android:adjustViewBounds="true"
+                    android:gravity="end|center_vertical"
+                    android:padding="8dp"
+                    android:scaleType="fitEnd"
+                    app:animate="true"
+                    app:forceDarkMode="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null}"
+                    app:weatherIcon="@{viewModel.weather.weatherIcon}"
+                    tools:srcCompat="@drawable/wi_day_sunny" />
+
+            </RelativeLayout>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/weather_condition"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginLeft="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginRight="16dp"
+                android:layout_marginBottom="4dp"
+                android:ellipsize="end"
+                android:gravity="start|bottom"
+                android:maxLines="2"
+                android:padding="4dp"
+                android:text="@{viewModel.weather.curCondition}"
+                android:textAppearance="@style/TextAppearance.WeatherNow.ConditionText"
+                android:textColor="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null ? @android:color/white : @color/colorOnSurface}"
+                tools:text="Sunny" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/weather_feelslike"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:alpha="0.75"
+                android:ellipsize="end"
+                android:gravity="start|bottom"
+                android:maxLines="2"
+                android:padding="4dp"
+                android:textAppearance="?textAppearanceTitleMedium"
+                android:textColor="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null ? @android:color/white : @color/colorOnSurface}"
+                android:visibility="gone"
+                app:feelsLike="@{viewModel.weather.weatherDetailsMap}"
+                tools:text="Feels like 75°"
+                tools:visibility="visible" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/weather_summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginLeft="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginRight="16dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.75"
+                android:background="?attr/selectableItemBackground"
+                android:ellipsize="end"
+                android:maxLines="3"
+                android:padding="4dp"
+                android:text="@{viewModel.weather.weatherSummary}"
+                android:textSize="14sp"
+                android:textAppearance="?textAppearanceBodyMediumEmphasized"
+                android:textColor="@{FeatureSettings.isBackgroundImageEnabled &amp;&amp; viewModel.imageData != null ? @android:color/white : @color/colorOnSurface}"
+                app:clickable="@{viewModel.weather.weatherSummary}"
+                app:showIfTrue="@{FeatureSettings.isSummaryEnabled}"
+                app:hideIfNullOrWhitespace="@{viewModel.weather.weatherSummary}"
+                tools:text="Rain, some heavy, to affect the area tonight" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/bg_attribution"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:layout_gravity="bottom|end"
+                android:background="@drawable/light_round_corner_bg"
+                android:backgroundTint="@android:color/transparent"
+                android:gravity="end"
+                android:linksClickable="true"
+                android:layout_marginBottom="4dp"
+                android:padding="4dp"
+                android:textAppearance="?android:attr/textAppearanceSmallInverse"
+                android:textColor="@android:color/white"
+                android:textColorLink="@android:color/white"
+                android:textSize="12sp"
+                app:imageData="@{viewModel.imageData}"
+                tools:text="Attribution text goes here" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</layout>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="refreshinterval_entries">
+        <item>@string/refresh_60min</item>
+        <item>@string/refresh_2hrs</item>
+        <item>@string/refresh_3hrs</item>
+        <item>@string/refresh_6hrs</item>
+        <item>@string/refresh_12hrs</item>
+    </string-array>
+    <string-array name="refreshinterval_values">
+        <item>60</item>
+        <item>120</item>
+        <item>180</item>
+        <item>360</item>
+        <item>720</item>
+    </string-array>
+    <string-array name="premium_refreshinterval_entries">
+        <item>@string/refresh_30min</item>
+        <item>@string/refresh_60min</item>
+        <item>@string/refresh_2hrs</item>
+        <item>@string/refresh_3hrs</item>
+        <item>@string/refresh_6hrs</item>
+        <item>@string/refresh_12hrs</item>
+    </string-array>
+    <string-array name="premium_refreshinterval_values">
+        <item>30</item>
+        <item>60</item>
+        <item>120</item>
+        <item>180</item>
+        <item>360</item>
+        <item>720</item>
+    </string-array>
+    <string-array name="supportedlanguages_values">
+        <item />
+        <item>en</item>
+        <item>es</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>nl</item>
+        <item>pl</item>
+        <item>sk</item>
+        <item>zh-CN</item>
+    </string-array>
+    <string-array name="default_units">
+        <item>@string/default_units_imperial</item>
+        <item>@string/default_units_metric</item>
+    </string-array>
+    <string-array name="default_units_values">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+    <string-array name="temperatureunit_entries">
+        <item>°F</item>
+        <item>°C</item>
+    </string-array>
+    <string-array name="temperatureunit_values">
+        <item>F</item>
+        <item>C</item>
+    </string-array>
+    <string-array name="speedunit_entries">
+        <item>@string/unit_mph</item>
+        <item>@string/unit_kph</item>
+        <item>@string/unit_msec</item>
+        <item>@string/unit_knots</item>
+    </string-array>
+    <string-array name="speedunit_values">
+        <item>MPH</item>
+        <item>KMPH</item>
+        <item>MSEC</item>
+        <item>KNOTS</item>
+    </string-array>
+    <string-array name="pressureunit_entries">
+        <item>@string/unit_inHg</item>
+        <item>@string/unit_mBar</item>
+        <item>@string/unit_mmHg</item>
+    </string-array>
+    <string-array name="pressureunit_values">
+        <item>INMERCURY</item>
+        <item>MILLIBAR</item>
+        <item>MMMERCURY</item>
+    </string-array>
+    <string-array name="distanceunit_entries">
+        <item>@string/unit_miles</item>
+        <item>@string/unit_kilometers</item>
+    </string-array>
+    <string-array name="distanceunit_values">
+        <item>MILES</item>
+        <item>KILOMETERS</item>
+    </string-array>
+    <string-array name="precipitationunit_entries">
+        <item>@string/unit_in</item>
+        <item>@string/unit_mm</item>
+    </string-array>
+    <string-array name="precipitationunit_values">
+        <item>INCHES</item>
+        <item>MILLIMETERS</item>
+    </string-array>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr format="color" name="colorOnSurfaceVariant" />
+
+    <attr format="reference" name="textAppearanceBodyExtraSmall" />
+    <attr format="reference" name="textAppearanceArcLarge" />
+    <attr format="reference" name="textAppearanceArcMedium" />
+    <attr format="reference" name="textAppearanceArcSmall" />
+</resources>
